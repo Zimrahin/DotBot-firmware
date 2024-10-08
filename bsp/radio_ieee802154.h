@@ -1,18 +1,20 @@
-#ifndef __RADIO_H
-#define __RADIO_H
+#ifndef __RADIO_IEEE802154_H
+#define __RADIO_IEEE802154_H
 
 /**
- * @defgroup    bsp_radio   Radio support
+ * @defgroup    bsp_radio_ieee802154   Radio support
  * @ingroup     bsp
  * @brief       Control the radio peripheral
  *
- * This radio driver supports BLE 1MBit, 2MBit, Long Range 125KBit and Long Range 500KBit.
+ * This radio driver supports IEEE 802.15.4-2006 250 kbps 2.45GHz O-QPSK PHY
  *
  * @{
  * @file
  * @author Said Alvarado-Marin <said-alexander.alvarado-marin@inria.fr>
  * @author Alexandre Abadie <alexandre.abadie@inria.fr>
- * @copyright Inria, 2022-2023
+ * @author Diego Badillo-San-Juan <diego.badillo-san-juan@inria.fr>
+ *
+ * @copyright Inria, 2022-2024
  * @}
  */
 
@@ -50,22 +52,23 @@ typedef void (*radio_cb_t)(uint8_t *packet, uint8_t length);  ///< Function poin
 void db_radio_init(radio_cb_t callback, db_radio_ble_mode_t mode);
 
 /**
- * @brief Set the tx-rx frequency of the radio, by the following formula
+ * @brief Set the tx-rx centre frequency of the radio, by the following formula
  *
- * Radio frequency 2400 + freq (MHz) [0, 100]
+ * Radio frequency 2400 + freq (MHz) [5, 80]
  *
- * @param[in] freq Frequency of the radio [0, 100]
+ * @param[in] freq Frequency of the radio [5, 80]
  */
-void db_radio_set_frequency(uint8_t freq);
+void db_radio_ieee802154_set_frequency(uint8_t freq);
 
 /**
  * @brief Set the physical channel used of the radio
  *
- * Channels 37, 38 and 39 are BLE advertising channels.
+ * The IEEE 802.15.4 standard defines 16 channels [11 - 26] of 5 MHz each in the 2450 MHz frequency band.
+ * The channels range from 2405 MHz (channel 11) to 2480 MHz (channel 26)
  *
- * @param[in] channel BLE channel used by the radio [0-39]
+ * @param[in] channel IEEE 802.15.4 channel used by the radio [11 - 26]
  */
-void db_radio_set_channel(uint8_t channel);
+void db_radio_ieee802154_set_channel(uint8_t channel);
 
 /**
  * @brief Set the network address used to send/receive radio packets

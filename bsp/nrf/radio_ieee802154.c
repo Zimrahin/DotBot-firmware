@@ -1,12 +1,13 @@
 /**
  * @file
- * @ingroup bsp_radio
+ * @ingroup bsp_radio_ieee802154
  *
- * @brief  nRF52833-specific definition of the "radio" bsp module.
+ * @brief  nRF52833-specific definition of the "radio" bsp module for IEEE 802.15.4.
  *
  * @author Said Alvarado-Marin <said-alexander.alvarado-marin@inria.fr>
+ * @author Diego Badillo-San-Juan <diego.badillo-san-juan@inria.fr>
  *
- * @copyright Inria, 2022
+ * @copyright Inria, 2022-2024
  */
 #include <nrf.h>
 #include <stdint.h>
@@ -15,7 +16,7 @@
 #include <string.h>
 
 #include "clock.h"
-#include "radio.h"
+#include "radio_ieee802154.h"
 
 //=========================== defines ==========================================
 
@@ -55,18 +56,6 @@ typedef struct {
 } radio_vars_t;
 
 //=========================== variables ========================================
-
-static const uint8_t _chan_to_freq[40] = {
-    4, 6, 8,
-    10, 12, 14, 16, 18,
-    20, 22, 24, 28,
-    30, 32, 34, 36, 38,
-    40, 42, 44, 46, 48,
-    50, 52, 54, 56, 58,
-    60, 62, 64, 66, 68,
-    70, 72, 74, 76, 78,
-    2, 26, 80  // Advertising channels
-};
 
 static radio_vars_t radio_vars = { 0 };
 
@@ -178,13 +167,14 @@ void db_radio_init(radio_cb_t callback, db_radio_ble_mode_t mode) {
     NVIC_EnableIRQ(RADIO_IRQn);
 }
 
-void db_radio_set_frequency(uint8_t freq) {
-
+void db_radio_ieee802154_set_frequency(uint8_t freq) {
     NRF_RADIO->FREQUENCY = freq << RADIO_FREQUENCY_FREQUENCY_Pos;
 }
 
-void db_radio_set_channel(uint8_t channel) {
-    NRF_RADIO->FREQUENCY = (_chan_to_freq[channel] << RADIO_FREQUENCY_FREQUENCY_Pos);
+void db_radio_ieee802154_set_channel(uint8_t channel) {
+    // The IEEE 802.15.4 standard defines 16 channels [11 - 26] of 5 MHz each in the 2450 MHz frequency band.
+    uint8_t freq         = 5 * (channel - 10);  // Frequency offset in MHz from 2400 MHz
+    NRF_RADIO->FREQUENCY = (freq << RADIO_FREQUENCY_FREQUENCY_Pos);
 }
 
 void db_radio_set_network_address(uint32_t addr) {
