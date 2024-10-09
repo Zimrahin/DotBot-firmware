@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "clock.h"
 #include "radio_ieee802154.h"
@@ -24,7 +25,7 @@
 #define NRF_RADIO NRF_RADIO_NS
 #endif
 
-#define PAYLOAD_MAX_LENGTH UINT8_MAX
+#define PAYLOAD_MAX_LENGTH (127UL)  ///< Total usable payload for IEEE 802.15.4 is 127 octets (PSDU)
 #if defined(NRF5340_XXAA) && defined(NRF_NETWORK)
 #define RADIO_INTERRUPT_PRIORITY 2
 #else
@@ -67,78 +68,34 @@ static void _radio_enable(void);
 
 void db_radio_init(radio_cb_t callback, db_radio_ble_mode_t mode) {
 
-#if defined(NRF5340_XXAA)
-    // On nrf53 configure constant latency mode for better performances
-    NRF_POWER_NS->TASKS_CONSTLAT = 1;
-#endif
-
     // Reset radio to its initial values
     NRF_RADIO->POWER = (RADIO_POWER_POWER_Disabled << RADIO_POWER_POWER_Pos);
     NRF_RADIO->POWER = (RADIO_POWER_POWER_Enabled << RADIO_POWER_POWER_Pos);
 
-#if defined(NRF5340_XXAA)
-    // Copy all the RADIO trim values from FICR into the target addresses (from errata v1.6 - 3.29 [158])
-    for (uint32_t index = 0; index < 32ul && NRF_FICR_NS->TRIMCNF[index].ADDR != (uint32_t *)0xFFFFFFFFul; index++) {
-        if (((uint32_t)NRF_FICR_NS->TRIMCNF[index].ADDR & 0xFFFFF000ul) == (volatile uint32_t)NRF_RADIO_NS) {
-            *((volatile uint32_t *)NRF_FICR_NS->TRIMCNF[index].ADDR) = NRF_FICR_NS->TRIMCNF[index].DATA;
-        }
-    }
-#endif
+    // General configuration of the radio
+    NRF_RADIO->MODE = (RADIO_MODE_MODE_Ieee802154_250Kbit << RADIO_MODE_MODE_Pos);  // Configure IEEE 802.15.4 mode
 
-    // General configuration of the radio.
-    NRF_RADIO->MODE = ((RADIO_MODE_MODE_Ble_1Mbit + mode) << RADIO_MODE_MODE_Pos);  // Configure BLE mode
-#if defined(NRF5340_XXAA)
-    // From errata v1.6 - 3.15 [117] RADIO: Changing MODE requires additional configuration
-    if (mode == DB_RADIO_BLE_2MBit) {
-        *((volatile uint32_t *)0x41008588) = *((volatile uint32_t *)0x01FF0084);
-    } else {
-        *((volatile uint32_t *)0x41008588) = *((volatile uint32_t *)0x01FF0080);
-    }
+    NRF_RADIO->TXPOWER = (RADIO_TXPOWER_TXPOWER_0dBm << RADIO_TXPOWER_TXPOWER_Pos);  // Set transmission power to 0dBm
 
-#endif
+    // Packet configuration register 0
+    NRF_RADIO->PCNF0 = (0 << RADIO_PCNF0_S1LEN_Pos) |                         // S1 field length in bits
+                       (0 << RADIO_PCNF0_S0LEN_Pos) |                         // S0 field length in bytes
+                       (8 << RADIO_PCNF0_LFLEN_Pos) |                         // 8-bit length field
+                       (RADIO_PCNF0_PLEN_32bitZero << RADIO_PCNF0_PLEN_Pos);  // 4 bytes that are all zero for IEEE 802.15.4
 
-    if (mode == DB_RADIO_BLE_1MBit || mode == DB_RADIO_BLE_2MBit) {
-        NRF_RADIO->TXPOWER = (RADIO_TXPOWER_TXPOWER_0dBm << RADIO_TXPOWER_TXPOWER_Pos);  // 0dBm == 1mW Power output
-        NRF_RADIO->PCNF0   = (0 << RADIO_PCNF0_S1LEN_Pos) |                              // S1 field length in bits
-                           (1 << RADIO_PCNF0_S0LEN_Pos) |                                // S0 field length in bytes
-                           (8 << RADIO_PCNF0_LFLEN_Pos) |                                // LENGTH field length in bits
-                           (RADIO_PCNF0_PLEN_8bit << RADIO_PCNF0_PLEN_Pos);              // PREAMBLE length is 1 byte in BLE 1Mbit/s and 2Mbit/s
+    // Packet configuration register 1
+    NRF_RADIO->PCNF1 = (4UL << RADIO_PCNF1_BALEN_Pos) |                           // 4-byte base address (24 bits)
+                       (PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos) |           // Max payload of 127 bytes
+                       (0 << RADIO_PCNF1_STATLEN_Pos) |                           // 0 bytes added to payload length
+                       (RADIO_PCNF1_ENDIAN_Little << RADIO_PCNF1_ENDIAN_Pos) |    // Little-endian format
+                       (RADIO_PCNF1_WHITEEN_Enabled << RADIO_PCNF1_WHITEEN_Pos);  // Enable data whitening
 
-        NRF_RADIO->PCNF1 = (4UL << RADIO_PCNF1_BALEN_Pos) |  // The base address is 4 Bytes long
-                           (PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos) |
-                           (0 << RADIO_PCNF1_STATLEN_Pos) |
-                           (RADIO_PCNF1_ENDIAN_Little << RADIO_PCNF1_ENDIAN_Pos) |    // Make the on air packet be little endian (this enables some useful features)
-                           (RADIO_PCNF1_WHITEEN_Enabled << RADIO_PCNF1_WHITEEN_Pos);  // Enable data whitening feature.
-    } else {                                                                          // Long ranges modes (125KBit/500KBit)
-#if defined(NRF5340_XXAA)
-        NRF_RADIO->TXPOWER = (RADIO_TXPOWER_TXPOWER_0dBm << RADIO_TXPOWER_TXPOWER_Pos);  // 0dBm Power output
-#else
-        NRF_RADIO->TXPOWER = (RADIO_TXPOWER_TXPOWER_Pos8dBm << RADIO_TXPOWER_TXPOWER_Pos);  // 8dBm Power output
-#endif
+    // Address configuration
+    NRF_RADIO->BASE0       = DEFAULT_NETWORK_ADDRESS;                                           // Configuring the on-air radio address
+    NRF_RADIO->TXADDRESS   = (0UL << RADIO_TXADDRESS_TXADDRESS_Pos);                            // Only send using logical address 0
+    NRF_RADIO->RXADDRESSES = (RADIO_RXADDRESSES_ADDR0_Enabled << RADIO_RXADDRESSES_ADDR0_Pos);  // Only receive from logical address 0
 
-        // Coded PHY (Long Range)
-        NRF_RADIO->PCNF0 = (0 << RADIO_PCNF0_S1LEN_Pos) |
-                           (1 << RADIO_PCNF0_S0LEN_Pos) |
-                           (8 << RADIO_PCNF0_LFLEN_Pos) |
-                           (3 << RADIO_PCNF0_TERMLEN_Pos) |
-                           (2 << RADIO_PCNF0_CILEN_Pos) |
-                           (RADIO_PCNF0_PLEN_LongRange << RADIO_PCNF0_PLEN_Pos);
-
-        NRF_RADIO->PCNF1 = (RADIO_PCNF1_WHITEEN_Disabled << RADIO_PCNF1_WHITEEN_Pos) |
-                           (RADIO_PCNF1_ENDIAN_Little << RADIO_PCNF1_ENDIAN_Pos) |
-                           (3 << RADIO_PCNF1_BALEN_Pos) |
-                           (0 << RADIO_PCNF1_STATLEN_Pos) |
-                           (PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos);
-    }
-
-    // Configuring the on-air radio address.
-    NRF_RADIO->BASE0 = DEFAULT_NETWORK_ADDRESS;
-    // only send using logical address 0
-    NRF_RADIO->TXADDRESS = 0UL;
-    // only receive from logical address 0
-    NRF_RADIO->RXADDRESSES = (RADIO_RXADDRESSES_ADDR0_Enabled << RADIO_RXADDRESSES_ADDR0_Pos);
-
-    // Inter frame spacing in us
+    // Interframe spacing in us: time between two consecutive packets
     NRF_RADIO->TIFS = RADIO_TIFS;
 
     // Enable Fast TX Ramp Up
