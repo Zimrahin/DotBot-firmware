@@ -12,6 +12,7 @@
  * @file
  * @author Said Alvarado-Marin <said-alexander.alvarado-marin@inria.fr>
  * @author Alexandre Abadie <alexandre.abadie@inria.fr>
+ * @author Raphael Simoes <raphael.simoes@inria.fr>
  * @author Diego Badillo-San-Juan <diego.badillo-san-juan@inria.fr>
  *
  * @copyright Inria, 2022-2024
@@ -27,15 +28,7 @@
 #define DEFAULT_NETWORK_ADDRESS 0x12345678UL  ///< Default network address
 #endif
 
-/// BLE modes supported by the radio
-typedef enum {
-    DB_RADIO_BLE_1MBit,
-    DB_RADIO_BLE_2MBit,
-    DB_RADIO_BLE_LR125Kbit,
-    DB_RADIO_BLE_LR500Kbit,
-} db_radio_ble_mode_t;
-
-typedef void (*radio_cb_t)(uint8_t *packet, uint8_t length);  ///< Function pointer to the callback function called on packet receive
+typedef void (*radio_ieee802154_cb_t)(uint8_t *packet, uint8_t length);  ///< Function pointer to the callback function called on packet received
 
 //=========================== public ===========================================
 
@@ -48,7 +41,7 @@ typedef void (*radio_cb_t)(uint8_t *packet, uint8_t length);  ///< Function poin
  * @param[in] callback pointer to a function that will be called each time a packet is received.
  *
  */
-void db_radio_init(radio_cb_t callback, db_radio_ble_mode_t mode);
+void db_radio_ieee802154_init(radio_ieee802154_cb_t callback);
 
 /**
  * @brief Set the tx-rx centre frequency of the radio, by the following formula
@@ -74,7 +67,7 @@ void db_radio_ieee802154_set_channel(uint8_t channel);
  *
  * @param[in] addr Network address
  */
-void db_radio_set_network_address(uint32_t addr);
+void db_radio_ieee802154_set_network_address(uint32_t addr);
 
 /**
  * @brief Sends a single packet through the Radio
@@ -89,7 +82,7 @@ void db_radio_set_network_address(uint32_t addr);
  * @param[in] length Number of bytes to send (max size = 32)
  *
  */
-void db_radio_tx(const uint8_t *packet, uint8_t length);
+void db_radio_ieee802154_tx(const uint8_t *packet, uint8_t length);
 
 /**
  * @brief Starts Receiving packets through the Radio
@@ -98,18 +91,18 @@ void db_radio_tx(const uint8_t *packet, uint8_t length);
  * (with the functions db_radio_init db_radio_set_frequency).
  *
  */
-void db_radio_rx(void);
+void db_radio_ieee802154_rx(void);
 
 /**
  * @brief Reads the RSSI of a received packet
  *
  * Should be called after a packet is received, e.g. in the radio callback
  */
-int8_t db_radio_rssi(void);
+int8_t db_radio_ieee802154_rssi(void);
 
 /**
  * @brief Disables the radio, no packet can be received and energy consumption is minimal
  */
-void db_radio_disable(void);
+void db_radio_ieee802154_disable(void);
 
 #endif

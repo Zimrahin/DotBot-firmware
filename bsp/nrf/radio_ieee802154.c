@@ -5,6 +5,7 @@
  * @brief  nRF52833-specific definition of the "radio" bsp module for IEEE 802.15.4.
  *
  * @author Said Alvarado-Marin <said-alexander.alvarado-marin@inria.fr>
+ * @author Raphael Simoes <raphael.simoes@inria.fr>
  * @author Diego Badillo-San-Juan <diego.badillo-san-juan@inria.fr>
  *
  * @copyright Inria, 2022-2024
@@ -32,7 +33,7 @@
 #define RADIO_INTERRUPT_PRIORITY 1
 #endif
 
-#define RADIO_TIFS          0U  ///< Inter frame spacing in us. zero means IFS is enforced by software, not the hardware
+// #define RADIO_TIFS          640U  ///< Interframe spacing in us
 #define RADIO_SHORTS_COMMON (RADIO_SHORTS_READY_START_Enabled << RADIO_SHORTS_READY_START_Pos) |                 \
                                 (RADIO_SHORTS_END_DISABLE_Enabled << RADIO_SHORTS_END_DISABLE_Pos) |             \
                                 (RADIO_SHORTS_ADDRESS_RSSISTART_Enabled << RADIO_SHORTS_ADDRESS_RSSISTART_Pos) | \
@@ -48,12 +49,12 @@ typedef struct __attribute__((packed)) {
     uint8_t header;                       ///< PDU header (depends on the type of PDU - advertising physical channel or Data physical channel)
     uint8_t length;                       ///< Length of the payload + MIC (if any)
     uint8_t payload[PAYLOAD_MAX_LENGTH];  ///< Payload + MIC (if any)
-} ble_radio_pdu_t;
+} ieee802154_radio_pdu_t;
 
 typedef struct {
-    ble_radio_pdu_t pdu;       ///< Variable that stores the radio PDU (protocol data unit) that arrives and the radio packets that are about to be sent.
-    radio_cb_t      callback;  ///< Function pointer, stores the callback to use in the RADIO_Irq handler.
-    uint8_t         state;     ///< Internal state of the radio
+    ieee802154_radio_pdu_t pdu;       ///< Variable that stores the radio PDU (protocol data unit) that arrives and the radio packets that are about to be sent.
+    radio_ieee802154_cb_t  callback;  ///< Function pointer, stores the callback to use in the RADIO_Irq handler.
+    uint8_t                state;     ///< Internal state of the radio
 } radio_vars_t;
 
 //=========================== variables ========================================
@@ -66,8 +67,7 @@ static void _radio_enable(void);
 
 //=========================== public ===========================================
 
-void db_radio_init(radio_cb_t callback, db_radio_ble_mode_t mode) {
-
+void db_radio_ieee802154_init(radio_ieee802154_cb_t callback) {
     // Reset radio to its initial values
     NRF_RADIO->POWER = (RADIO_POWER_POWER_Disabled << RADIO_POWER_POWER_Pos);
     NRF_RADIO->POWER = (RADIO_POWER_POWER_Enabled << RADIO_POWER_POWER_Pos);
@@ -95,12 +95,13 @@ void db_radio_init(radio_cb_t callback, db_radio_ble_mode_t mode) {
     NRF_RADIO->TXADDRESS   = (0UL << RADIO_TXADDRESS_TXADDRESS_Pos);                            // Only send using logical address 0
     NRF_RADIO->RXADDRESSES = (RADIO_RXADDRESSES_ADDR0_Enabled << RADIO_RXADDRESSES_ADDR0_Pos);  // Only receive from logical address 0
 
-    // Interframe spacing in us: time between two consecutive packets
-    NRF_RADIO->TIFS = RADIO_TIFS;
+    // TIFS (time interframe spacing): time between two consecutive packets
+    // Enable automatic TIFS adjustment based on frame size
+    // Note: The END to START shortcut should not be used with Ieee802154_250Kbit modes.
+    // Rather the PHYEND to START shortcut.
+    NRF_RADIO->SHORTS = RADIO_SHORTS_READY_START_Msk |  // Automatically start transmission when ready
+                        RADIO_SHORTS_PHYEND_START_Msk;  // Automatically handle TIFS after END event
 
-    // Enable Fast TX Ramp Up
-    NRF_RADIO->MODECNF0 = (RADIO_MODECNF0_RU_Fast << RADIO_MODECNF0_RU_Pos) |
-                          (RADIO_MODECNF0_DTX_Center << RADIO_MODECNF0_DTX_Pos);
     // CRC Config
     NRF_RADIO->CRCCNF = (RADIO_CRCCNF_LEN_Two << RADIO_CRCCNF_LEN_Pos) |                  // 16-bit (2 bytes) CRC
                         (RADIO_CRCCNF_SKIPADDR_Ieee802154 << RADIO_CRCCNF_SKIPADDR_Pos);  // CRCCNF = 0x202 for IEEE 802.15.4
@@ -114,11 +115,12 @@ void db_radio_init(radio_cb_t callback, db_radio_ble_mode_t mode) {
     radio_vars.callback = callback;
     radio_vars.state    = RADIO_STATE_IDLE;
 
-    // Configure the external High-frequency Clock. (Needed for correct operation)
+    // Configure the external High-frequency Clock (needed for correct operation)
     db_hfclk_init();
 
     // Configure the Interruptions
     NVIC_SetPriority(RADIO_IRQn, RADIO_INTERRUPT_PRIORITY);  // Set priority for Radio interrupts to 1
+
     // Clear all radio interruptions
     NRF_RADIO->INTENCLR = 0xffffffff;
     NVIC_EnableIRQ(RADIO_IRQn);
@@ -130,15 +132,16 @@ void db_radio_ieee802154_set_frequency(uint8_t freq) {
 
 void db_radio_ieee802154_set_channel(uint8_t channel) {
     // The IEEE 802.15.4 standard defines 16 channels [11 - 26] of 5 MHz each in the 2450 MHz frequency band.
-    uint8_t freq         = 5 * (channel - 10);  // Frequency offset in MHz from 2400 MHz
-    NRF_RADIO->FREQUENCY = (freq << RADIO_FREQUENCY_FREQUENCY_Pos);
+    assert(channel >= 11 && channel <= 26 && "Channel value must be between 11 and 26 for IEEE 802.15.4");
+    uint8_t freq = 5 * (channel - 10);  // Frequency offset in MHz from 2400 MHz
+    db_radio_ieee802154_set_frequency(freq);
 }
 
-void db_radio_set_network_address(uint32_t addr) {
+void db_radio_ieee802154_set_network_address(uint32_t addr) {
     NRF_RADIO->BASE0 = addr;
 }
 
-void db_radio_tx(const uint8_t *tx_buffer, uint8_t length) {
+void db_radio_ieee802154_tx(const uint8_t *tx_buffer, uint8_t length) {
     radio_vars.pdu.length = length;
     memcpy(radio_vars.pdu.payload, tx_buffer, length);
 
@@ -155,7 +158,7 @@ void db_radio_tx(const uint8_t *tx_buffer, uint8_t length) {
     radio_vars.state = RADIO_STATE_RX;
 }
 
-void db_radio_rx(void) {
+void db_radio_ieee802154_rx(void) {
     NRF_RADIO->SHORTS   = RADIO_SHORTS_COMMON | (RADIO_SHORTS_DISABLED_RXEN_Enabled << RADIO_SHORTS_DISABLED_RXEN_Pos);
     NRF_RADIO->INTENSET = RADIO_INTERRUPTS;
 
@@ -166,16 +169,17 @@ void db_radio_rx(void) {
     radio_vars.state = RADIO_STATE_RX;
 }
 
-void db_radio_disable(void) {
+void db_radio_ieee802154_disable(void) {
     NRF_RADIO->INTENCLR        = RADIO_INTERRUPTS;
     NRF_RADIO->SHORTS          = 0;
+    NRF_RADIO->EVENTS_TXREADY  = 0;
     NRF_RADIO->EVENTS_DISABLED = 0;
     NRF_RADIO->TASKS_DISABLE   = RADIO_TASKS_DISABLE_TASKS_DISABLE_Trigger << RADIO_TASKS_DISABLE_TASKS_DISABLE_Pos;
     while (NRF_RADIO->EVENTS_DISABLED == 0) {}
     radio_vars.state = RADIO_STATE_IDLE;
 }
 
-int8_t db_radio_rssi(void) {
+int8_t db_radio_ieee802154_rssi(void) {
     return (uint8_t)NRF_RADIO->RSSISAMPLE * -1;
 }
 
