@@ -4,5 +4,3 @@ Loading this app onto an nRF board enables communication using the IEEE 802.15.4
 
 You can test this code by loading the firmware onto two nRF DKs, with one DK in Debug mode to print the received packets.
 
-The packet is X bytes long and contains Y (fill in).
-
