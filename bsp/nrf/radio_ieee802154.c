@@ -33,7 +33,7 @@
 #define RADIO_INTERRUPT_PRIORITY 1
 #endif
 
-// #define RADIO_TIFS          640U  ///< Interframe spacing in us
+#define RADIO_TIFS          640U  ///< Interframe spacing in us
 #define RADIO_SHORTS_COMMON (RADIO_SHORTS_READY_START_Enabled << RADIO_SHORTS_READY_START_Pos) |                 \
                                 (RADIO_SHORTS_END_DISABLE_Enabled << RADIO_SHORTS_END_DISABLE_Pos) |             \
                                 (RADIO_SHORTS_ADDRESS_RSSISTART_Enabled << RADIO_SHORTS_ADDRESS_RSSISTART_Pos) | \
@@ -83,24 +83,17 @@ void db_radio_ieee802154_init(radio_ieee802154_cb_t callback) {
                        (8 << RADIO_PCNF0_LFLEN_Pos) |                         // 8-bit length field
                        (RADIO_PCNF0_PLEN_32bitZero << RADIO_PCNF0_PLEN_Pos);  // 4 bytes that are all zero for IEEE 802.15.4
 
-    // Packet configuration register 1
-    NRF_RADIO->PCNF1 = (4UL << RADIO_PCNF1_BALEN_Pos) |                           // 4-byte base address (24 bits)
-                       (PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos) |           // Max payload of 127 bytes
-                       (0 << RADIO_PCNF1_STATLEN_Pos) |                           // 0 bytes added to payload length
-                       (RADIO_PCNF1_ENDIAN_Little << RADIO_PCNF1_ENDIAN_Pos) |    // Little-endian format
-                       (RADIO_PCNF1_WHITEEN_Enabled << RADIO_PCNF1_WHITEEN_Pos);  // Enable data whitening
-
     // Address configuration
     NRF_RADIO->BASE0       = DEFAULT_NETWORK_ADDRESS;                                           // Configuring the on-air radio address
     NRF_RADIO->TXADDRESS   = 0UL;                                                               // Only send using logical address 0
     NRF_RADIO->RXADDRESSES = (RADIO_RXADDRESSES_ADDR0_Enabled << RADIO_RXADDRESSES_ADDR0_Pos);  // Only receive from logical address 0
+    // // Packet configuration register 1
+    NRF_RADIO->PCNF1 = (PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos) |        // Max payload of 127 bytes
+                       (0 << RADIO_PCNF1_STATLEN_Pos) |                        // 0 bytes added to payload length
+                       (RADIO_PCNF1_ENDIAN_Little << RADIO_PCNF1_ENDIAN_Pos);  // Little-endian format
 
-    // TIFS (time interframe spacing): time between two consecutive packets
-    // Enable automatic TIFS adjustment based on frame size
-    // Note: The END to START shortcut should not be used with Ieee802154_250Kbit modes.
-    // Rather the PHYEND to START shortcut.
-    NRF_RADIO->SHORTS = RADIO_SHORTS_READY_START_Msk |  // Automatically start transmission when ready
-                        RADIO_SHORTS_PHYEND_START_Msk;  // Automatically handle TIFS after END event
+    // Inter frame spacing in us
+    NRF_RADIO->TIFS = RADIO_TIFS;
 
     // CRC Config
     NRF_RADIO->CRCCNF = (RADIO_CRCCNF_LEN_Two << RADIO_CRCCNF_LEN_Pos) |                  // 16-bit (2 bytes) CRC
