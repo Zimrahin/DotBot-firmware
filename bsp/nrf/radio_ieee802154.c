@@ -92,7 +92,7 @@ void db_radio_ieee802154_init(radio_ieee802154_cb_t callback) {
 
     // Address configuration
     NRF_RADIO->BASE0       = DEFAULT_NETWORK_ADDRESS;                                           // Configuring the on-air radio address
-    NRF_RADIO->TXADDRESS   = (0UL << RADIO_TXADDRESS_TXADDRESS_Pos);                            // Only send using logical address 0
+    NRF_RADIO->TXADDRESS   = 0UL;                                                               // Only send using logical address 0
     NRF_RADIO->RXADDRESSES = (RADIO_RXADDRESSES_ADDR0_Enabled << RADIO_RXADDRESSES_ADDR0_Pos);  // Only receive from logical address 0
 
     // TIFS (time interframe spacing): time between two consecutive packets
