@@ -27,7 +27,7 @@
 #define NRF_RADIO NRF_RADIO_NS
 #endif
 
-#define PAYLOAD_MAX_LENGTH (127UL)  ///< Total usable payload for IEEE 802.15.4 is 127 octets (PSDU)
+#define PAYLOAD_MAX_LENGTH (125UL)  ///< Total usable payload for IEEE 802.15.4 is 127 octets (PSDU)
 #if defined(NRF5340_XXAA) && defined(NRF_NETWORK)
 #define RADIO_INTERRUPT_PRIORITY 2
 #else
@@ -56,6 +56,7 @@ typedef struct {
     ieee802154_radio_pdu_t pdu;       ///< Variable that stores the radio PDU (protocol data unit) that arrives and the radio packets that are about to be sent.
     radio_ieee802154_cb_t  callback;  ///< Function pointer, stores the callback to use in the RADIO_Irq handler.
     uint8_t                state;     ///< Internal state of the radio
+
 } radio_vars_t;
 
 //=========================== variables ========================================
@@ -84,17 +85,24 @@ void db_radio_ieee802154_init(radio_ieee802154_cb_t callback) {
                        (8 << RADIO_PCNF0_LFLEN_Pos) |                         // 8-bit length field
                        (RADIO_PCNF0_PLEN_32bitZero << RADIO_PCNF0_PLEN_Pos);  // 4 bytes that are all zero for IEEE 802.15.4
 
-    // Address configuration
-    NRF_RADIO->BASE0       = DEFAULT_NETWORK_ADDRESS;                                           // Configuring the on-air radio address
-    NRF_RADIO->TXADDRESS   = 0UL;                                                               // Only send using logical address 0
-    NRF_RADIO->RXADDRESSES = (RADIO_RXADDRESSES_ADDR0_Enabled << RADIO_RXADDRESSES_ADDR0_Pos);  // Only receive from logical address 0
     // // Packet configuration register 1
     NRF_RADIO->PCNF1 = (PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos) |        // Max payload of 127 bytes
                        (0 << RADIO_PCNF1_STATLEN_Pos) |                        // 0 bytes added to payload length
                        (RADIO_PCNF1_ENDIAN_Little << RADIO_PCNF1_ENDIAN_Pos);  // Little-endian format
+    //    (3 << RADIO_PCNF1_BALEN_Pos);
+    //    (RADIO_PCNF1_WHITEEN_Enabled << RADIO_PCNF1_WHITEEN_Pos)
+
+    // Address configuration
+    NRF_RADIO->BASE0       = DEFAULT_NETWORK_ADDRESS;                                           // Configuring the on-air radio address
+    NRF_RADIO->TXADDRESS   = 0UL;                                                               // Only send using logical address 0
+    NRF_RADIO->RXADDRESSES = (RADIO_RXADDRESSES_ADDR0_Enabled << RADIO_RXADDRESSES_ADDR0_Pos);  // Only receive from logical address 0
 
     // Inter frame spacing in us
     NRF_RADIO->TIFS = RADIO_TIFS;
+
+    // Enable Fast TX Ramp Up
+    NRF_RADIO->MODECNF0 = (RADIO_MODECNF0_RU_Fast << RADIO_MODECNF0_RU_Pos) |
+                          (RADIO_MODECNF0_DTX_Center << RADIO_MODECNF0_DTX_Pos);
 
     // CRC Config
     NRF_RADIO->CRCCNF = (RADIO_CRCCNF_LEN_Two << RADIO_CRCCNF_LEN_Pos) |                  // 16-bit (2 bytes) CRC
