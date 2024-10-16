@@ -21,7 +21,7 @@
 //=========================== defines ===========================================
 
 #define DELAY_MS           (100)  // Wait 100ms between each send
-#define RADIO_FREQ         (25)    // Set the frequency to 2405 MHz (channel 11)
+#define RADIO_FREQ         (25)    // Set the frequency to 2425 MHz (channel 11)
 
 //=========================== variables =========================================
 
