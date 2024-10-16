@@ -80,16 +80,17 @@ void db_radio_ieee802154_init(radio_ieee802154_cb_t callback) {
     NRF_RADIO->TXPOWER = (RADIO_TXPOWER_TXPOWER_0dBm << RADIO_TXPOWER_TXPOWER_Pos);  // Set transmission power to 0dBm
 
     // Packet configuration register 0
-    NRF_RADIO->PCNF0 = (0 << RADIO_PCNF0_S1LEN_Pos) |                         // S1 field length in bits
-                       (0 << RADIO_PCNF0_S0LEN_Pos) |                         // S0 field length in bytes
-                       (8 << RADIO_PCNF0_LFLEN_Pos) |                         // 8-bit length field
-                       (RADIO_PCNF0_PLEN_32bitZero << RADIO_PCNF0_PLEN_Pos);  // 4 bytes that are all zero for IEEE 802.15.4
+    NRF_RADIO->PCNF0 = (0 << RADIO_PCNF0_S1LEN_Pos) |                          // S1 field length in bits
+                       (0 << RADIO_PCNF0_S0LEN_Pos) |                          // S0 field length in bytes
+                       (8 << RADIO_PCNF0_LFLEN_Pos) |                          // 8-bit length field
+                       (RADIO_PCNF0_PLEN_32bitZero << RADIO_PCNF0_PLEN_Pos) |  // 4 bytes that are all zero for IEEE 802.15.4
+                       (RADIO_PCNF0_CRCINC_Exclude << RADIO_PCNF0_CRCINC_Pos);
 
     // // Packet configuration register 1
-    NRF_RADIO->PCNF1 = (PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos) |        // Max payload of 127 bytes
-                       (0 << RADIO_PCNF1_STATLEN_Pos) |                        // 0 bytes added to payload length
-                       (RADIO_PCNF1_ENDIAN_Little << RADIO_PCNF1_ENDIAN_Pos);  // Little-endian format
-    //    (3 << RADIO_PCNF1_BALEN_Pos);
+    NRF_RADIO->PCNF1 = (PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos) |         // Max payload of 127 bytes
+                       (0 << RADIO_PCNF1_STATLEN_Pos) |                         // 0 bytes added to payload length
+                       (RADIO_PCNF1_ENDIAN_Little << RADIO_PCNF1_ENDIAN_Pos) |  // Little-endian format
+                       (0 << RADIO_PCNF1_BALEN_Pos);
     //    (RADIO_PCNF1_WHITEEN_Enabled << RADIO_PCNF1_WHITEEN_Pos)
 
     // Address configuration
