@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdbool.h>
 
 #include "clock.h"
 #include "radio_ieee802154.h"
@@ -210,10 +211,8 @@ void RADIO_IRQHandler(void) {
         NRF_RADIO->EVENTS_DISABLED = 0;
 
         if (radio_vars.state == (RADIO_STATE_BUSY | RADIO_STATE_RX)) {
-            if (NRF_RADIO->CRCSTATUS != RADIO_CRCSTATUS_CRCSTATUS_CRCOk) {
-                puts("Invalid CRC");
-            } else if (radio_vars.callback) {
-                radio_vars.callback(radio_vars.pdu.payload, radio_vars.pdu.length);
+            if (radio_vars.callback) {
+                radio_vars.callback(radio_vars.pdu.payload, radio_vars.pdu.length, NRF_RADIO->CRCSTATUS);
             }
             radio_vars.state = RADIO_STATE_RX;
         } else {  // TX

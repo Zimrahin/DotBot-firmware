@@ -11,6 +11,7 @@
 #include <nrf.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 // Include BSP packages
 #include "board.h"
 #include "board_config.h"
@@ -48,9 +49,9 @@ static const gpio_t _dbg_pin = { .port = DB_LED1_PORT, .pin = DB_LED1_PIN };
 
 //=========================== functions =========================================
 
-static void _radio_callback(uint8_t *packet, uint8_t length) {
+static void _radio_callback(uint8_t *packet, uint8_t length, bool crc) {
     db_gpio_toggle(&_dbg_pin);
-    printf("packet received (%dB): %s, RSSI: %i\n", length, (char *)packet, db_radio_ieee802154_rssi());
+    printf("crc %d (%X), (%dB): %s, RSSI: %i\n", crc, NRF_RADIO->RXCRC, length, (char *)packet, db_radio_ieee802154_rssi());
 }
 
 //=========================== main ==============================================

@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 #include <nrf.h>
+#include <stdbool.h>
 
 //=========================== defines ==========================================
 
@@ -28,7 +29,7 @@
 #define DEFAULT_NETWORK_ADDRESS 0x12345678UL  ///< Default network address
 #endif
 
-typedef void (*radio_ieee802154_cb_t)(uint8_t *packet, uint8_t length);  ///< Function pointer to the callback function called on packet received
+typedef void (*radio_ieee802154_cb_t)(uint8_t *packet, uint8_t length, bool crc);  ///< Function pointer to the callback function called on packet received
 
 //=========================== public ===========================================
 
