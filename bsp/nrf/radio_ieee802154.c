@@ -27,7 +27,7 @@
 #define NRF_RADIO NRF_RADIO_NS
 #endif
 
-#define PAYLOAD_MAX_LENGTH (125UL)  ///< Total usable payload for IEEE 802.15.4 is 127 octets (PSDU)
+#define PAYLOAD_MAX_LENGTH (125UL)  ///< Total usable payload for IEEE 802.15.4 is 125 octets (PSDU) when CRC is activated
 #if defined(NRF5340_XXAA) && defined(NRF_NETWORK)
 #define RADIO_INTERRUPT_PRIORITY 2
 #else
@@ -46,10 +46,10 @@
 #define RADIO_STATE_TX   0x02
 #define RADIO_STATE_BUSY 0x04
 
-typedef struct __attribute__((packed)) {
-    uint8_t header;                       ///< PDU header (depends on the type of PDU - advertising physical channel or Data physical channel)
-    uint8_t length;                       ///< Length of the payload + MIC (if any)
-    uint8_t payload[PAYLOAD_MAX_LENGTH];  ///< Payload + MIC (if any)
+// The PHR is the first byte that will be written to the frame data memory pointed to by PACKETPTR.
+typedef struct __attribute__((packed)) {  ///< Set pointer + 1 byte by byte
+    uint8_t length;                       ///< Length of the payload
+    uint8_t payload[PAYLOAD_MAX_LENGTH];  ///< Payload (max 127B, or 125B if CRC is included)
 } ieee802154_radio_pdu_t;
 
 typedef struct {
