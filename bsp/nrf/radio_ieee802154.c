@@ -34,7 +34,7 @@
 #define RADIO_INTERRUPT_PRIORITY 1
 #endif
 
-#define RADIO_TIFS          640U  ///< Interframe spacing in us
+#define RADIO_TIFS          0U  ///< Interframe spacing in us (0: defined by software afterwards)
 #define RADIO_SHORTS_COMMON (RADIO_SHORTS_READY_START_Enabled << RADIO_SHORTS_READY_START_Pos) |                 \
                                 (RADIO_SHORTS_END_DISABLE_Enabled << RADIO_SHORTS_END_DISABLE_Pos) |             \
                                 (RADIO_SHORTS_ADDRESS_RSSISTART_Enabled << RADIO_SHORTS_ADDRESS_RSSISTART_Pos) | \
