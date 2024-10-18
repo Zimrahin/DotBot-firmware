@@ -87,11 +87,11 @@ void db_radio_ieee802154_init(radio_ieee802154_cb_t callback) {
                        (RADIO_PCNF0_CRCINC_Exclude << RADIO_PCNF0_CRCINC_Pos);
 
     // // Packet configuration register 1
-    NRF_RADIO->PCNF1 = (PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos) |         // Max payload of 127 bytes
-                       (0 << RADIO_PCNF1_STATLEN_Pos) |                         // 0 bytes added to payload length
-                       (RADIO_PCNF1_ENDIAN_Little << RADIO_PCNF1_ENDIAN_Pos) |  // Little-endian format
-                       (0 << RADIO_PCNF1_BALEN_Pos);
-    //    (RADIO_PCNF1_WHITEEN_Enabled << RADIO_PCNF1_WHITEEN_Pos)
+    NRF_RADIO->PCNF1 = (PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos) |           // Max payload of 127 bytes
+                       (0 << RADIO_PCNF1_STATLEN_Pos) |                           // 0 bytes added to payload length
+                       (RADIO_PCNF1_ENDIAN_Little << RADIO_PCNF1_ENDIAN_Pos) |    // Little-endian format
+                       (0 << RADIO_PCNF1_BALEN_Pos) |                             // Base address length
+                       (RADIO_PCNF1_WHITEEN_Enabled << RADIO_PCNF1_WHITEEN_Pos);  // Enable whitening
 
     // Address configuration
     NRF_RADIO->BASE0       = DEFAULT_NETWORK_ADDRESS;                                           // Configuring the on-air radio address
