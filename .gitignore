@@ -67,3 +67,6 @@ Output/
 
 # artifacts
 artifacts/
+
+# Virtual environment
+venv/
