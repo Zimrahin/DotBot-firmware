@@ -2,20 +2,23 @@ import serial
 import time
 import jsonlines
 import argparse
-import os
+import sys
 from hdlc import HDLCHandler, HDLCState
 
 # Default values
 DEFAULT_USB_PORT = "/dev/ttyACM0"
 DEFAULT_BAUDRATE = 1000000
 
-radio_modes = [
-    "BLE_1MBit",
-    "BLE_2MBit",
-    "BLE_LR125Kbit",
-    "BLE_LR500Kbit",
-    "IEEE802154_250Kbit"
-]
+
+FREQ_INTERFERER = 2450  # MHz
+TX_POWER_INTERFERER = 0  # dBm
+TX_POWER_LINK = 0  # dBm
+INTERFERER_MODE = "IEEE802154250Kbit"
+LENGTH_INTERFERER = 64  # Bytes
+
+tx_power_values = [8, 7, 6, 5, 4, 3, 2, 0, -4, -8, -12, -16, -20, -40]  # dBm
+radio_modes = ["BLE1MBit", "BLE2MBit", "BLELR125Kbit", "BLELR500Kbit", "IEEE802154250Kbit", "tone"]
+
 
 # Class to handle serial communication between the gateway and the computer
 class SerialReader:
@@ -62,8 +65,8 @@ class SerialReader:
                 radio_mode_index = int.from_bytes(payload[-1].to_bytes(1, "little"), "little", signed=True)
                 message = payload[:length]
 
-                # Ensure radio_mode_index is within valid range
-                if 0 <= radio_mode_index < len(radio_modes):
+                # Ensure radio link mode is within valid range
+                if 0 <= radio_mode_index < (len(radio_modes) - 1):  # -1 because added tone mode
                     radio_mode = radio_modes[radio_mode_index]
                     self.handle_json_file(rx_freq, radio_mode)
                 else:
@@ -82,8 +85,8 @@ class SerialReader:
                 self.store_payload(payload_data)
 
     def handle_json_file(self, rx_freq, radio_mode):
-        os.makedirs(radio_mode, exist_ok=True)
-        json_file = f"{radio_mode}/radio_data_{rx_freq}MHz.jsonl"
+        freq_diff = FREQ_INTERFERER - rx_freq  # Frequency difference between interferer and link
+        json_file = f"{radio_mode}_{INTERFERER_MODE}_{TX_POWER_LINK}dBm{TX_POWER_INTERFERER}dBm_{freq_diff}MHz.jsonl"
 
         # Initialize json_writer if not already done
         if not self.json_writer:
@@ -102,10 +105,21 @@ class SerialReader:
 
 
 if __name__ == "__main__":
+    # Check if global defines are within range
+    if not (isinstance(FREQ_INTERFERER, int) and 2400 <= FREQ_INTERFERER <= 2500):
+        print("FREQ_INTERFERER must be an integer between 2400 and 2500 MHz.")
+        sys.exit(1)
+    if TX_POWER_INTERFERER not in tx_power_values or TX_POWER_LINK not in tx_power_values:
+        print("TX_POWER_INTERFERER and TX_POWER_LINK must match the nRF's allowed transmission values.")
+        sys.exit(1)
+    if INTERFERER_MODE not in radio_modes:
+        print("INTERFERER_MODE must match the nRF's allowed radio modes.")
+        sys.exit(1)
+
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Serial Reader CLI")
-    parser.add_argument("-p", "--port", type=str, default=DEFAULT_USB_PORT, help="USB port (default: /dev/ttyACM0)")
-    parser.add_argument("-b", "--baudrate", type=int, default=DEFAULT_BAUDRATE, help="Baud rate (default: 1000000)")
+    parser.add_argument("-p", "--port", type=str, default=DEFAULT_USB_PORT, help=f"USB port (default: {DEFAULT_USB_PORT})")
+    parser.add_argument("-b", "--baudrate", type=int, default=DEFAULT_BAUDRATE, help=f"Baud rate (default: {DEFAULT_BAUDRATE})")
     parser.add_argument("-P", "--print", action="store_true", help="Print data to console")
 
     # Parse arguments
