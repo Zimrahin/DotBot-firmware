@@ -67,9 +67,6 @@ static void _radio_callback(uint8_t *packet, uint8_t length) {
     _radio_packet.rx_freq    = FREQUENCY;
     _radio_packet.radio_mode = DOTBOT_GW_RADIO_MODE;
 
-    // Temporary print for SEGGER debugging
-    // printf("(%dB): %s, RSSI: %i, CRC: %i\n", length, (char *)packet, _radio_packet.rssi, _radio_packet.crc);
-
     hdlc_tx_buffer_size = db_hdlc_encode((uint8_t *)&_radio_packet, sizeof(radio_packet_t), hdlc_tx_buffer);
     db_uart_write(DB_UART_INDEX, hdlc_tx_buffer, hdlc_tx_buffer_size);
 }
