@@ -40,6 +40,8 @@ typedef struct __attribute__((packed)) {
     uint8_t length;                                    // Length of the radio packet
     int8_t  rssi;                                      // Received Signal Strength Indicator in dBm
     bool    crc;                                       // Cyclic Redundancy Check
+    uint8_t rx_freq;                                   // Frequency of the affected network
+    uint8_t radio_mode;                                // Radio protocol of the affected network (BLE or IEEE 802.15.4)
 } radio_packet_t;
 
 //=========================== variables =========================================
@@ -59,9 +61,11 @@ static void _radio_callback(uint8_t *packet, uint8_t length) {
     // Fill _radio_packet structure
     memset(_radio_packet.buffer, 0, DB_IEEE802154_PAYLOAD_MAX_LENGTH);  // Clear the buffer before filling it with new data in case of leftovers
     memcpy(_radio_packet.buffer, packet, length);
-    _radio_packet.length = length;
-    _radio_packet.rssi   = db_radio_rssi();
-    _radio_packet.crc    = NRF_RADIO->CRCSTATUS;
+    _radio_packet.length     = length;
+    _radio_packet.rssi       = db_radio_rssi();
+    _radio_packet.crc        = NRF_RADIO->CRCSTATUS;
+    _radio_packet.rx_freq    = FREQUENCY;
+    _radio_packet.radio_mode = DOTBOT_GW_RADIO_MODE;
 
     // Temporary print for SEGGER debugging
     // printf("(%dB): %s, RSSI: %i, CRC: %i\n", length, (char *)packet, _radio_packet.rssi, _radio_packet.crc);
