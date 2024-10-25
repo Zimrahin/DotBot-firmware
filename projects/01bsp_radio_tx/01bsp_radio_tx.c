@@ -12,6 +12,7 @@
 #include <nrf.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 // Include BSP packages
 #include "board.h"
 #include "board_config.h"
@@ -45,13 +46,13 @@ static const uint8_t packet_tx[] = {
 };
 
 static const gpio_t _dbg_pin = { .port = DB_LED1_PORT, .pin = DB_LED1_PIN };
+static bool         _tx_flag = false;
 
 //=========================== callbacks =========================================
 
 static void _tx_callback(void) {
     db_gpio_toggle(&_dbg_pin);  // Toggle LED
-    db_radio_disable();
-    db_radio_tx((uint8_t *)packet_tx, sizeof(packet_tx) / sizeof(packet_tx[0]));
+    _tx_flag = true;
 }
 
 //=========================== main ==============================================
@@ -75,6 +76,12 @@ int main(void) {
     db_timer_set_periodic_ms(TIMER_DEV, 0, DELAY_MS, &_tx_callback);
 
     while (1) {
+        if (_tx_flag) {
+            db_radio_disable();
+            db_radio_tx((uint8_t *)packet_tx, sizeof(packet_tx) / sizeof(packet_tx[0]));
+
+            _tx_flag = false;
+        }
         __WFI();  // Wait for interruption
     }
 }
