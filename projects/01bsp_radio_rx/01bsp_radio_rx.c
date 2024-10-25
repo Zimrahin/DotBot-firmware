@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
+
 // Include BSP packages
 #include "board.h"
 #include "board_config.h"
@@ -42,6 +44,7 @@ typedef struct __attribute__((packed)) {
     uint8_t buffer[DB_IEEE802154_PAYLOAD_MAX_LENGTH];  // Buffer containing the radio packet
     uint8_t length;                                    // Length of the radio packet
     int8_t  rssi;                                      // Received Signal Strength Indicator in dBm
+    bool    crc;                                       // Cyclic Redundancy Check
 } radio_packet_t;
 
 //=========================== variables =========================================
@@ -64,6 +67,10 @@ static void _radio_callback(uint8_t *packet, uint8_t length) {
     memcpy(_radio_packet.buffer, packet, length);
     _radio_packet.length = length;
     _radio_packet.rssi   = db_radio_rssi();
+    _radio_packet.crc    = NRF_RADIO->CRCSTATUS;
+
+    // Temporary print for SEGGER debugging
+    // printf("(%dB): %s, RSSI: %i, CRC: %i\n", length, (char *)packet, _radio_packet.rssi, _radio_packet.crc);
 
     hdlc_tx_buffer_size = db_hdlc_encode((uint8_t *)&_radio_packet, sizeof(radio_packet_t), hdlc_tx_buffer);
     db_uart_write(DB_UART_INDEX, hdlc_tx_buffer, hdlc_tx_buffer_size);

@@ -45,13 +45,16 @@ class SerialReader:
         self.hdlc_handler.handle_byte(data)
         if self.hdlc_handler.state == HDLCState.READY:
             payload = self.hdlc_handler.payload
+
             if payload:
-                length = int.from_bytes(payload[-2].to_bytes(1, "little"), "little", signed=False)
-                rssi = int.from_bytes(payload[-1].to_bytes(1, "little"), "little", signed=True)
+                # Handle payload variables
+                length = int.from_bytes(payload[-3].to_bytes(1, "little"), "little", signed=False)
+                rssi = int.from_bytes(payload[-2].to_bytes(1, "little"), "little", signed=True)
+                crc = int.from_bytes(payload[-1].to_bytes(1, "little"), "little", signed=True)
                 message = payload[:length]
 
                 # Store payload in a dictionary
-                payload_data = {"message": message.decode(), "length": length, "rssi": rssi}
+                payload_data = {"message": message.decode(), "length": length, "rssi": rssi, "crc": crc}
 
                 # Print or/and store payload
                 self.store_payload(payload_data)
