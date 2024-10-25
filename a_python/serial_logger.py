@@ -3,6 +3,7 @@ import time
 import jsonlines
 import argparse
 import sys
+import os
 from hdlc import HDLCHandler, HDLCState
 from config import (
     DEFAULT_USB_PORT,
@@ -81,8 +82,9 @@ class SerialReader:
                 self.store_payload(payload_data)
 
     def handle_json_file(self, rx_freq, radio_mode):
+        os.makedirs("experiment_data", exist_ok=True)
         freq_diff = FREQ_INTERFERER - rx_freq  # Frequency difference between interferer and link
-        json_file = f"{radio_mode}_{INTERFERER_MODE}_{TX_POWER_LINK}dBm{TX_POWER_INTERFERER}dBm_{freq_diff}MHz.jsonl"
+        json_file = f"experiment_data/{radio_mode}_{INTERFERER_MODE}_{TX_POWER_LINK}dBm{TX_POWER_INTERFERER}dBm_{freq_diff}MHz.jsonl"
 
         # Initialize json_writer if not already done
         if not self.json_writer:
