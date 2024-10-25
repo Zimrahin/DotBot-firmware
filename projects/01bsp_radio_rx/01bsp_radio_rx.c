@@ -35,11 +35,6 @@
 #define DB_UART_INDEX (0)  ///< Index of UART peripheral to use
 #endif
 
-// typedef struct {
-//     uint8_t buffer[DB_UART_MAX_BYTES];  ///< buffer where message received on UART is stored
-//     uint8_t pos;                        ///< current position in the UART buffer
-// } uart_vars_t;
-
 typedef struct __attribute__((packed)) {
     uint8_t buffer[DB_IEEE802154_PAYLOAD_MAX_LENGTH];  // Buffer containing the radio packet
     uint8_t length;                                    // Length of the radio packet
@@ -55,7 +50,6 @@ static uint8_t hdlc_tx_buffer[DB_UART_MAX_BYTES];
 static size_t  hdlc_tx_buffer_size;
 
 static radio_packet_t _radio_packet = { 0 };
-// static uart_vars_t    _uart_vars    = { 0 };
 
 //=========================== callbacks =========================================
 
@@ -75,16 +69,6 @@ static void _radio_callback(uint8_t *packet, uint8_t length) {
     hdlc_tx_buffer_size = db_hdlc_encode((uint8_t *)&_radio_packet, sizeof(radio_packet_t), hdlc_tx_buffer);
     db_uart_write(DB_UART_INDEX, hdlc_tx_buffer, hdlc_tx_buffer_size);
 }
-
-// Callback to echo received packets. Taken from 01bsp_uart.c example
-// static void _uart_callback(uint8_t byte) {
-//     _uart_vars.buffer[_uart_vars.pos] = byte;
-//     _uart_vars.pos++;
-//     if (byte == '\n' || _uart_vars.pos == DB_UART_MAX_BYTES - 1) {
-//         db_uart_write(0, _uart_vars.buffer, _uart_vars.pos);
-//         _uart_vars.pos = 0;
-//     }
-// }
 
 //=========================== main ==============================================
 
