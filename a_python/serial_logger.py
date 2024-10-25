@@ -1,12 +1,13 @@
 import serial
 import time
 import jsonlines
+import argparse
 from hdlc import HDLCHandler, HDLCState
 
-USB_PORT = "/dev/ttyACM0"
-BAUDRATE = 1000000
-JSON_FILE = "radio_data.jsonl"
-
+# Default values
+DEFAULT_USB_PORT = "/dev/ttyACM0"
+DEFAULT_BAUDRATE = 1000000
+DEFAULT_JSON_FILE = "radio_data.jsonl"
 
 # Class to handle serial communication between the gateway and the computer
 class SerialReader:
@@ -23,7 +24,7 @@ class SerialReader:
         self.hdlc_handler = HDLCHandler()
 
         if self.json_file:
-            self.json_writer = jsonlines.open(JSON_FILE, mode="a")
+            self.json_writer = jsonlines.open(self.json_file, mode="a")
 
     def read_data(self):
         try:
@@ -68,5 +69,16 @@ class SerialReader:
 
 
 if __name__ == "__main__":
-    usb_reader = SerialReader(USB_PORT, BAUDRATE, None, print_flag=True)
+    # Set up argument parser
+    parser = argparse.ArgumentParser(description="Serial Reader CLI")
+    parser.add_argument("--port", type=str, default=DEFAULT_USB_PORT, help="USB port (default: /dev/ttyACM0)")
+    parser.add_argument("--baudrate", type=int, default=DEFAULT_BAUDRATE, help="Baud rate (default: 1000000)")
+    parser.add_argument("--json_file", type=str, default=DEFAULT_JSON_FILE, help="Path to JSONL file (default: radio_data.jsonl)")
+    parser.add_argument("--print", action="store_true", help="Print data to console")
+
+    # Parse arguments
+    args = parser.parse_args()
+
+    # Initialize SerialReader with CLI arguments or default values
+    usb_reader = SerialReader(args.port, args.baudrate, args.json_file, args.print)
     usb_reader.read_data()
