@@ -72,7 +72,7 @@ class SerialReader:
 
                 # Store payload in a dictionary
                 payload_data = {
-                    "message": message.decode(),
+                    "message": list(message),
                     "length": length,
                     "rssi": rssi,
                     "crc": crc,
