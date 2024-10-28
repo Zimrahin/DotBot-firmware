@@ -19,11 +19,12 @@ from config import (
 
 # Class to handle serial communication between the gateway and the computer
 class SerialReader:
-    def __init__(self, port, baudrate, print_flag):
+    def __init__(self, port, baudrate, print_flag, save_flag):
         # Inputs
         self.port = port
         self.baudrate = baudrate
         self.print_flag = print_flag
+        self.save_flag = save_flag
 
         # Serial constants
         self.timeout = 1
@@ -89,11 +90,11 @@ class SerialReader:
         json_file = f"experiment_data/{radio_mode}_{INTERFERER_MODE}_{TX_POWER_LINK}dBm{TX_POWER_INTERFERER}dBm_{freq_diff}MHz.jsonl"
 
         # Initialize json_writer if not already done
-        if not self.json_writer:
+        if not self.json_writer and self.save_flag:
             self.json_writer = jsonlines.open(json_file, mode="a")
 
     def store_payload(self, payload_data):
-        if self.json_writer:
+        if self.json_writer and self.save_flag:
             self.json_writer.write(payload_data)
         if self.print_flag:
             print(payload_data)
@@ -118,13 +119,14 @@ if __name__ == "__main__":
 
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Serial Reader CLI")
-    parser.add_argument("-p", "--port", type=str, default=DEFAULT_USB_PORT, help=f"USB port (default: {DEFAULT_USB_PORT})")
+    parser.add_argument("-P", "--port", type=str, default=DEFAULT_USB_PORT, help=f"USB port (default: {DEFAULT_USB_PORT})")
     parser.add_argument("-b", "--baudrate", type=int, default=DEFAULT_BAUDRATE, help=f"Baud rate (default: {DEFAULT_BAUDRATE})")
-    parser.add_argument("-P", "--print", action="store_true", help="Print data to console")
+    parser.add_argument("-p", "--print", action="store_true", help="Print data to console")
+    parser.add_argument("-s", "--save", action="store_true", help="Save data in a JSONL file")
 
     # Parse arguments
     args = parser.parse_args()
 
     # Initialise SerialReader with CLI arguments or default values
-    usb_reader = SerialReader(args.port, args.baudrate, args.print)
+    usb_reader = SerialReader(args.port, args.baudrate, args.print, args.save)
     usb_reader.read_data()
