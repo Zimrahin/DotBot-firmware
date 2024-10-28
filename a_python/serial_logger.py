@@ -60,7 +60,8 @@ class SerialReader:
                 crc = int.from_bytes(payload[-3].to_bytes(1, "little"), "little", signed=True)
                 rx_freq = int.from_bytes(payload[-2].to_bytes(1, "little"), "little", signed=True) + 2400  # MHz
                 radio_mode_index = int.from_bytes(payload[-1].to_bytes(1, "little"), "little", signed=True)
-                message = payload[:length]
+                message = payload[4:length] # The size of msg_id is 4 bytes and it is included in the message
+                msg_id = int.from_bytes(payload[:4], "little", signed=False)
 
                 # Ensure radio link mode is within valid range
                 if 0 <= radio_mode_index < (len(radio_modes) - 1):  # -1 because added tone mode
@@ -72,8 +73,9 @@ class SerialReader:
 
                 # Store payload in a dictionary
                 payload_data = {
+                    "id": msg_id,
                     "message": list(message),
-                    "length": length,
+                    "length": length, # length includes the 4 bytes used by the identifier
                     "rssi": rssi,
                     "crc": crc,
                 }

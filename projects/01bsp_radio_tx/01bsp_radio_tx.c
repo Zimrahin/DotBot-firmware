@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
+
 // Include BSP packages
 #include "board.h"
 #include "board_config.h"
@@ -22,7 +24,12 @@
 
 //=========================== defines ===========================================
 
-// See conf.h
+#define MAX_PAYLOAD_SIZE (120)  // Maximum message size
+
+typedef struct __attribute__((packed)) {
+    uint32_t msg_id;                     // Message ID (starts at 0 and increments by 1 for each message)
+    uint8_t  message[MAX_PAYLOAD_SIZE];  // Actual message
+} _radio_pdu_t;
 
 //=========================== variables =========================================
 
@@ -42,11 +49,11 @@ static const uint8_t packet_tx[] = {
     0xC0, 0xC2, 0xC4, 0xC6, 0xC8, 0xCA, 0xCC, 0xCE,  //
     0xD0, 0xD2, 0xD4, 0xD6, 0xD8, 0xDA, 0xDC, 0xDE,  //
     0xE0, 0xE2, 0xE4, 0xE6, 0xE8, 0xEA, 0xEC, 0xEE,  //
-    0xF0, 0xF2, 0xF4, 0xF6, 0xF8,                    //
-};
+};  // 120 Bytes long
 
-static const gpio_t _dbg_pin = { .port = DB_LED1_PORT, .pin = DB_LED1_PIN };
-static bool         _tx_flag = false;
+static const gpio_t _dbg_pin   = { .port = DB_LED1_PORT, .pin = DB_LED1_PIN };
+static bool         _tx_flag   = false;
+static _radio_pdu_t _radio_pdu = { 0 };
 
 //=========================== callbacks =========================================
 
@@ -61,6 +68,9 @@ int main(void) {
 
     // Turn ON the DotBot board regulator
     db_board_init();
+
+    // Initialize message to _radio_pdu_t struct
+    memcpy(_radio_pdu.message, packet_tx, sizeof(packet_tx));
 
     //=========================== Initialize GPIO and timer =====================
 
@@ -77,9 +87,11 @@ int main(void) {
 
     while (1) {
         if (_tx_flag) {
+            // Send packet
             db_radio_disable();
-            db_radio_tx((uint8_t *)packet_tx, sizeof(packet_tx) / sizeof(packet_tx[0]));
+            db_radio_tx((uint8_t *)&_radio_pdu, sizeof(_radio_pdu));
 
+            _radio_pdu.msg_id += 1;
             _tx_flag = false;
         }
         __WFI();  // Wait for interruption
