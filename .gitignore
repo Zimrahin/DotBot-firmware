@@ -73,6 +73,3 @@ venv/
 
 # Python cache
 __pycache__*/
-
-# JSONL files
-*.jsonl
