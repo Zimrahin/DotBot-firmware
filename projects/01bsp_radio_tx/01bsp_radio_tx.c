@@ -25,6 +25,9 @@
 //=========================== defines ===========================================
 
 #define MAX_PAYLOAD_SIZE (120)  // Maximum message size
+#define PPI_CH_ADDRESS   (0)    // PPI channel destined to radio address event debugging
+#define PPI_CH_PAYLOAD   (1)    // PPI channel destined to radio payload event debugging
+#define GPIOTE_CH_OUT    (0)    // GPIOTE channel for RADIO TX
 
 typedef struct __attribute__((packed)) {
     uint32_t msg_id;                     // Message ID (starts at 0 and increments by 1 for each message)
@@ -51,7 +54,9 @@ static const uint8_t packet_tx[] = {
     0xE0, 0xE2, 0xE4, 0xE6, 0xE8, 0xEA, 0xEC, 0xEE,  //
 };  // 120 Bytes long
 
-static const gpio_t _dbg_pin   = { .port = DB_LED1_PORT, .pin = DB_LED1_PIN };
+static const gpio_t _dbg_pin     = { .port = DB_LED1_PORT, .pin = DB_LED1_PIN };
+static const gpio_t _dbg_pin_ppi = { .port = DB_LED2_PORT, .pin = DB_LED2_PIN };
+
 static bool         _tx_flag   = false;
 static _radio_pdu_t _radio_pdu = { 0 };
 
@@ -62,9 +67,39 @@ static void _tx_callback(void) {
     _tx_flag = true;
 }
 
+//=========================== functions =========================================
+
+void _gpiote_setup(const gpio_t *gpio_e) {
+    NRF_GPIOTE->CONFIG[GPIOTE_CH_OUT] = (GPIOTE_CONFIG_MODE_Task << GPIOTE_CONFIG_MODE_Pos) |
+                                        (gpio_e->pin << GPIOTE_CONFIG_PSEL_Pos) |
+                                        (gpio_e->port << GPIOTE_CONFIG_PORT_Pos) |
+                                        (GPIOTE_CONFIG_POLARITY_None << GPIOTE_CONFIG_POLARITY_Pos) |
+                                        (GPIOTE_CONFIG_OUTINIT_Low << GPIOTE_CONFIG_OUTINIT_Pos);
+}
+
+void _ppi_setup(void) {
+    // Enable PPI channels
+    NRF_PPI->CHENSET = (1 << PPI_CH_ADDRESS) | (1 << PPI_CH_PAYLOAD);
+
+    // Set event and task endpoints for radio address event
+    uint32_t radio_events_address   = (uint32_t)&NRF_RADIO->EVENTS_ADDRESS;
+    uint32_t gpiote_tasks_set       = (uint32_t)&NRF_GPIOTE->TASKS_SET[GPIOTE_CH_OUT];
+    NRF_PPI->CH[PPI_CH_ADDRESS].EEP = radio_events_address;
+    NRF_PPI->CH[PPI_CH_ADDRESS].TEP = gpiote_tasks_set;
+
+    // Set event and task endpoints for radio payload event
+    uint32_t radio_events_payload   = (uint32_t)&NRF_RADIO->EVENTS_PAYLOAD;
+    uint32_t gpiote_tasks_clr       = (uint32_t)&NRF_GPIOTE->TASKS_CLR[GPIOTE_CH_OUT];
+    NRF_PPI->CH[PPI_CH_PAYLOAD].EEP = radio_events_payload;
+    NRF_PPI->CH[PPI_CH_PAYLOAD].TEP = gpiote_tasks_clr;
+}
+
 //=========================== main ==============================================
 
 int main(void) {
+    // Set PPI and GPIOTE
+    _gpiote_setup(&_dbg_pin_ppi);
+    _ppi_setup();
 
     // Turn ON the DotBot board regulator
     db_board_init();
