@@ -20,7 +20,7 @@
 #include "board_config.h"
 #include "gpio.h"
 #include "radio.h"
-#include "timer.h"
+#include "timer_hf.h"
 
 //=========================== defines ===========================================
 
@@ -75,7 +75,7 @@ int main(void) {
     //=========================== Initialize GPIO and timer =====================
 
     db_gpio_init(&_dbg_pin, DB_GPIO_OUT);
-    db_timer_init(0);
+    db_timer_hf_init(0);
 
     //=========================== Configure Radio ===============================
 
@@ -83,7 +83,7 @@ int main(void) {
     db_radio_set_frequency(FREQUENCY);
 
     // Set timer callbacks
-    db_timer_set_periodic_ms(TIMER_DEV, 0, DELAY_MS, &_tx_callback);
+    db_timer_hf_set_periodic_us(TIMER_DEV, 0, 1000 * DELAY_MS, &_tx_callback);
 
     while (1) {
         if (_tx_flag) {

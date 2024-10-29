@@ -361,7 +361,7 @@
   <project Name="01bsp_radio_tx">
     <configuration
       Name="Common"
-      project_dependencies="00bsp_dotbot_board(bsp);00bsp_radio(bsp);00bsp_gpio(bsp);00bsp_timer(bsp)"
+      project_dependencies="00bsp_dotbot_board(bsp);00bsp_radio(bsp);00bsp_gpio(bsp);00bsp_timer_hf(bsp)"
       project_directory="01bsp_radio_tx"
       project_type="Executable" />
     <folder Name="Device Files">
