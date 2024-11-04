@@ -82,10 +82,11 @@ void _ppi_setup(db_radio_mode_t mode) {
     NRF_PPI->CHENSET = (1 << PPI_CH_ADDRESS) | (1 << PPI_CH_END);
 
     // Set event and task endpoints for radio address event
+    uint32_t radio_events_payload_start;
     if (mode == DB_RADIO_IEEE802154_250Kbit) {
-        uint32_t radio_events_payload_start = (uint32_t)&NRF_RADIO->EVENTS_FRAMESTART;
+        radio_events_payload_start = (uint32_t)&NRF_RADIO->EVENTS_FRAMESTART;
     } else {
-        uint32_t radio_events_payload_start = (uint32_t)&NRF_RADIO->EVENTS_ADDRESS;
+        radio_events_payload_start = (uint32_t)&NRF_RADIO->EVENTS_ADDRESS;
     }
     uint32_t gpiote_tasks_set       = (uint32_t)&NRF_GPIOTE->TASKS_SET[GPIOTE_CH_OUT];
     NRF_PPI->CH[PPI_CH_ADDRESS].EEP = radio_events_payload_start;
