@@ -21,13 +21,11 @@
 #include "gpio.h"
 #include "radio.h"
 #include "timer_hf.h"
+#include "../01bsp_radio_tx/ppi_functions.h"
 
 //=========================== defines ===========================================
 
 #define MAX_PAYLOAD_SIZE (16)  // Maximum message size
-#define PPI_CH_ADDRESS   (0)   // PPI channel destined to radio address event debugging
-#define PPI_CH_END       (1)   // PPI channel destined to radio end event debugging
-#define GPIOTE_CH_OUT    (1)   // GPIOTE channel for RADIO TX
 
 typedef struct __attribute__((packed)) {
     uint8_t message[MAX_PAYLOAD_SIZE];  // Actual message
@@ -55,37 +53,12 @@ static void _tx_callback(void *ctx) {
 
 //=========================== functions =========================================
 
-void _gpiote_setup(const gpio_t *gpio_e) {
-    NRF_GPIOTE->CONFIG[GPIOTE_CH_OUT] = (GPIOTE_CONFIG_MODE_Task << GPIOTE_CONFIG_MODE_Pos) |
-                                        (gpio_e->pin << GPIOTE_CONFIG_PSEL_Pos) |
-                                        (gpio_e->port << GPIOTE_CONFIG_PORT_Pos) |
-                                        (GPIOTE_CONFIG_POLARITY_None << GPIOTE_CONFIG_POLARITY_Pos) |
-                                        (GPIOTE_CONFIG_OUTINIT_Low << GPIOTE_CONFIG_OUTINIT_Pos);
-}
-
-void _ppi_setup(void) {
-    // Enable PPI channels
-    NRF_PPI->CHENSET = (1 << PPI_CH_ADDRESS) | (1 << PPI_CH_END);
-
-    // Set event and task endpoints for radio address event
-    uint32_t radio_events_address   = (uint32_t)&NRF_RADIO->EVENTS_ADDRESS;
-    uint32_t gpiote_tasks_set       = (uint32_t)&NRF_GPIOTE->TASKS_SET[GPIOTE_CH_OUT];
-    NRF_PPI->CH[PPI_CH_ADDRESS].EEP = radio_events_address;
-    NRF_PPI->CH[PPI_CH_ADDRESS].TEP = gpiote_tasks_set;
-
-    // Set event and task endpoints for radio payload event
-    uint32_t radio_events_end   = (uint32_t)&NRF_RADIO->EVENTS_END;
-    uint32_t gpiote_tasks_clr   = (uint32_t)&NRF_GPIOTE->TASKS_CLR[GPIOTE_CH_OUT];
-    NRF_PPI->CH[PPI_CH_END].EEP = radio_events_end;
-    NRF_PPI->CH[PPI_CH_END].TEP = gpiote_tasks_clr;
-}
-
 //=========================== main ==============================================
 
 int main(void) {
     // Set PPI and GPIOTE
     _gpiote_setup(&_dbg_pin_ppi);
-    _ppi_setup();
+    _ppi_setup(DOTBOT_GW_RADIO_MODE);
 
     // Turn ON the DotBot board regulator
     db_board_init();
