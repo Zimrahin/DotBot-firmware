@@ -75,6 +75,7 @@ int main(void) {
 
     db_radio_init(NULL, DOTBOT_GW_RADIO_MODE);
     db_radio_set_frequency(FREQUENCY);
+    NRF_RADIO->TXPOWER = (TX_POWER << RADIO_TXPOWER_TXPOWER_Pos);
 
     // Set interrupt callbacks
     db_gpio_init_irq(&_dbg_pin, DB_GPIO_IN, DB_GPIO_IRQ_EDGE_BOTH, _tx_callback, NULL);

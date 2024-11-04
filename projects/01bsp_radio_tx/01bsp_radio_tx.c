@@ -88,6 +88,7 @@ int main(void) {
 
     db_radio_init(NULL, DOTBOT_GW_RADIO_MODE);
     db_radio_set_frequency(FREQUENCY);
+    NRF_RADIO->TXPOWER = (TX_POWER << RADIO_TXPOWER_TXPOWER_Pos);
 
     // Set timer callbacks
     db_timer_hf_set_periodic_us(TIMER_DEV, 0, 1000 * DELAY_MS, &_tx_callback);
