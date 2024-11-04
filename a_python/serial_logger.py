@@ -4,6 +4,7 @@ import jsonlines
 import argparse
 import sys
 import os
+import matplotlib.pyplot as plt
 from hdlc import HDLCHandler, HDLCState
 from config import (
     DEFAULT_USB_PORT,
@@ -16,15 +17,18 @@ from config import (
     radio_modes,
 )
 
+plt.ion()
+
 
 # Class to handle serial communication between the gateway and the computer
 class SerialReader:
-    def __init__(self, port, baudrate, print_flag, save_flag):
+    def __init__(self, port, baudrate, print_flag, save_flag, plot_flag):
         # Inputs
         self.port = port
         self.baudrate = baudrate
         self.print_flag = print_flag
         self.save_flag = save_flag
+        self.plot_flag = plot_flag
 
         # Serial constants
         self.timeout = 1
@@ -61,7 +65,7 @@ class SerialReader:
                 crc = int.from_bytes(payload[-3].to_bytes(1, "little"), "little", signed=True)
                 rx_freq = int.from_bytes(payload[-2].to_bytes(1, "little"), "little", signed=True) + 2400  # MHz
                 radio_mode_index = int.from_bytes(payload[-1].to_bytes(1, "little"), "little", signed=True)
-                message = payload[4:length] # The size of msg_id is 4 bytes and it is included in the message
+                message = payload[4:length]  # The size of msg_id is 4 bytes and it is included in the message
                 msg_id = int.from_bytes(payload[:4], "little", signed=False)
 
                 # Ensure radio link mode is within valid range
@@ -76,7 +80,7 @@ class SerialReader:
                 payload_data = {
                     "id": msg_id,
                     "message": list(message),
-                    "length": length, # length includes the 4 bytes used by the identifier
+                    "length": length,  # length includes the 4 bytes used by the identifier
                     "rssi": rssi,
                     "crc": crc,
                 }
@@ -98,6 +102,24 @@ class SerialReader:
             self.json_writer.write(payload_data)
         if self.print_flag:
             print(payload_data)
+        if self.plot_flag:
+            self.plot_payload(payload_data)
+
+    def plot_payload(self, payload_data):
+        plt.clf()  # Clear the figure to refresh it
+        plt.plot(payload_data["message"], marker="o", linestyle="-", color="b")
+        plt.title("Received data")
+        plt.xlabel("Byte index")
+        plt.ylabel("Message")
+
+        # Create a box with payload details
+        info_text = f"ID: {payload_data['id']}\nLength: {payload_data['length']}\n" f"RSSI: {payload_data['rssi']}\nCRC: {payload_data['crc']}"
+        plt.gca().text(1.05, 0.55, info_text, fontsize=10, ha="left", va="top", transform=plt.gca().transAxes, bbox=dict(facecolor="white", alpha=0.5))
+
+        # Show grid and update the plot
+        plt.grid()
+        plt.tight_layout()
+        plt.pause(0.001)  # Pause briefly to allow plot to update
 
     def __del__(self):
         if self.json_writer:
@@ -123,10 +145,11 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--baudrate", type=int, default=DEFAULT_BAUDRATE, help=f"Baud rate (default: {DEFAULT_BAUDRATE})")
     parser.add_argument("-p", "--print", action="store_true", help="Print data to console")
     parser.add_argument("-s", "--save", action="store_true", help="Save data in a JSONL file")
+    parser.add_argument("-plot", "--plot", action="store_true", help="Plot payload data")
 
     # Parse arguments
     args = parser.parse_args()
 
     # Initialise SerialReader with CLI arguments or default values
-    usb_reader = SerialReader(args.port, args.baudrate, args.print, args.save)
+    usb_reader = SerialReader(args.port, args.baudrate, args.print, args.save, args.plot)
     usb_reader.read_data()
