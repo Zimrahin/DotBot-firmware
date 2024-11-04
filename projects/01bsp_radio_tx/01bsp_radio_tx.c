@@ -62,7 +62,6 @@ static _radio_pdu_t _radio_pdu = { 0 };
 
 static void _tx_callback(void) {
     _tx_flag = true;
-    db_gpio_toggle(&_dbg_pin);  // Toggle LED
 }
 
 //=========================== functions =========================================
@@ -96,6 +95,7 @@ int main(void) {
     while (1) {
         if (_tx_flag) {
             // Send packet
+            db_gpio_toggle(&_dbg_pin);  // Toggle LED
             db_radio_disable();
             db_radio_tx((uint8_t *)&_radio_pdu, sizeof(_radio_pdu));
 
