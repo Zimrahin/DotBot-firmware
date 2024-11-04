@@ -42,19 +42,6 @@ typedef enum {
 
 typedef void (*radio_cb_t)(uint8_t *packet, uint8_t length);  ///< Function pointer to the callback function called on packet receive
 
-typedef struct __attribute__((packed)) {
-    uint8_t header;                              ///< PDU header (depends on the type of PDU - advertising physical channel or Data physical channel)
-    uint8_t length;                              ///< Length of the payload + MIC (if any)
-    uint8_t payload[DB_BLE_PAYLOAD_MAX_LENGTH];  ///< Payload + MIC (if any) (DB_BLE_PAYLOAD_MAX_LENGTH > DB_IEEE802154_PAYLOAD_MAX_LENGTH)
-} radio_pdu_t;
-
-typedef struct {
-    radio_pdu_t     pdu;       ///< Variable that stores the radio PDU (protocol data unit) that arrives and the radio packets that are about to be sent.
-    radio_cb_t      callback;  ///< Function pointer, stores the callback to use in the RADIO_Irq handler.
-    uint8_t         state;     ///< Internal state of the radio
-    db_radio_mode_t mode;      ///< PHY protocol used by the radio (BLE, IEEE 802.15.4)
-} radio_vars_t;
-
 //=========================== public ===========================================
 
 /**
