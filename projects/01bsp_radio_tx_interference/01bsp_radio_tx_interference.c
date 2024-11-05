@@ -38,8 +38,9 @@ static const uint8_t packet_tx[] = {
     0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,  //
 };  // 16 Bytes long
 
-static const gpio_t _dbg_pin     = { .port = DB_LED1_PORT, .pin = DB_LED1_PIN };
-static const gpio_t _dbg_pin_ppi = { .port = DB_LED2_PORT, .pin = DB_LED2_PIN };
+static const gpio_t _dbg_pin      = { .port = DB_LED1_PORT, .pin = DB_LED1_PIN };
+static const gpio_t _dbg_pin_ppi  = { .port = DB_LED2_PORT, .pin = DB_LED2_PIN };
+static const gpio_t _dbg_pin_txen = { .port = DB_LED3_PORT, .pin = DB_LED3_PIN };
 
 static bool         _tx_flag   = false;
 static _radio_pdu_t _radio_pdu = { 0 };
@@ -68,7 +69,7 @@ int main(void) {
 
     //=========================== Initialize GPIO and timer =====================
 
-    // db_gpio_init(&_dbg_pin, DB_GPIO_OUT);
+    db_gpio_init(&_dbg_pin_txen, DB_GPIO_OUT);
     db_timer_hf_init(0);
 
     //=========================== Configure Radio ===============================
@@ -84,7 +85,7 @@ int main(void) {
         if (_tx_flag) {
             // Send packet
             db_radio_disable();
-            db_radio_tx((uint8_t *)&_radio_pdu, sizeof(_radio_pdu));
+            db_radio_tx((uint8_t *)&_radio_pdu, sizeof(_radio_pdu), &_dbg_pin_txen);
 
             _tx_flag = false;
         }

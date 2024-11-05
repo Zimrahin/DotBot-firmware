@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 #include <nrf.h>
+#include "gpio.h"
 
 //=========================== defines ==========================================
 
@@ -98,7 +99,7 @@ void db_radio_set_network_address(uint32_t addr);
  * @param[in] length Number of bytes to send (max size = 32)
  *
  */
-void db_radio_tx(const uint8_t *packet, uint8_t length);
+void db_radio_tx(const uint8_t *packet, uint8_t length, const gpio_t *gpio_pin);
 
 /**
  * @brief Starts Receiving packets through the Radio
