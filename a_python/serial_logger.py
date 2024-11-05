@@ -24,7 +24,7 @@ plt.ion()
 class SerialReader:
     def __init__(self, port, baudrate, print_flag, save_flag, plot_flag):
         # Inputs
-        self.port = port
+        self.port = f"/dev/ttyACM{port}"
         self.baudrate = baudrate
         self.print_flag = print_flag
         self.save_flag = save_flag
@@ -141,9 +141,9 @@ if __name__ == "__main__":
 
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Serial Reader CLI")
-    parser.add_argument("-P", "--port", type=str, default=DEFAULT_USB_PORT, help=f"USB port (default: {DEFAULT_USB_PORT})")
+    parser.add_argument("-port", "--port", type=str, default=f"/dev/ttyACM{DEFAULT_USB_PORT}", help=f"USB port (default: /dev/ttyACM{DEFAULT_USB_PORT})")
     parser.add_argument("-b", "--baudrate", type=int, default=DEFAULT_BAUDRATE, help=f"Baud rate (default: {DEFAULT_BAUDRATE})")
-    parser.add_argument("-p", "--print", action="store_true", help="Print data to console")
+    parser.add_argument("-print", "--print", action="store_true", help="Print data to console")
     parser.add_argument("-s", "--save", action="store_true", help="Save data in a JSONL file")
     parser.add_argument("-plot", "--plot", action="store_true", help="Plot payload data")
 
