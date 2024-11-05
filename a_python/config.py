@@ -1,5 +1,5 @@
 # Default values
-DEFAULT_USB_PORT = "/dev/ttyACM0"
+DEFAULT_USB_PORT = 0 # "/dev/ttyACM0"
 DEFAULT_BAUDRATE = 1000000
 
 
