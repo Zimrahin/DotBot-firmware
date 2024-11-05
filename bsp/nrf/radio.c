@@ -234,7 +234,13 @@ void db_radio_set_network_address(uint32_t addr) {
     NRF_RADIO->BASE0 = addr;
 }
 
-void db_radio_tx(const uint8_t *tx_buffer, uint8_t length, const gpio_t *gpio_pin) {
+void db_radio_memcpy2buffer(const uint8_t *tx_buffer, uint8_t length) {
+    radio_vars.pdu.length = length;
+    memcpy(radio_vars.pdu.payload, tx_buffer, length);
+    NRF_RADIO->SHORTS = RADIO_SHORTS_COMMON;
+}
+
+void db_radio_tx(const uint8_t *tx_buffer, uint8_t length) {
     radio_vars.pdu.length = length;
     memcpy(radio_vars.pdu.payload, tx_buffer, length);
 
@@ -244,8 +250,7 @@ void db_radio_tx(const uint8_t *tx_buffer, uint8_t length, const gpio_t *gpio_pi
 
         // Enable the Radio to send the packet
         NRF_RADIO->EVENTS_DISABLED = 0;  // We must use EVENT_DISABLED, if we use EVENT_END. the interrupts will be enabled in the time between the END event and the Disable event, triggering an undesired interrupt
-        db_gpio_toggle(gpio_pin);
-        NRF_RADIO->TASKS_TXEN = RADIO_TASKS_TXEN_TASKS_TXEN_Trigger << RADIO_TASKS_TXEN_TASKS_TXEN_Pos;
+        NRF_RADIO->TASKS_TXEN      = RADIO_TASKS_TXEN_TASKS_TXEN_Trigger << RADIO_TASKS_TXEN_TASKS_TXEN_Pos;
         // Wait for transmission to end and the radio to be disabled
         while (NRF_RADIO->EVENTS_DISABLED == 0) {}
 
