@@ -72,7 +72,7 @@ void _gpiote_setup(const gpio_t *gpio_in, const gpio_t *gpio_out) {
                                         (GPIOTE_CONFIG_OUTINIT_Low << GPIOTE_CONFIG_OUTINIT_Pos);
 }
 
-void _ppi_setup(db_radio_mode_t mode) {
+void _ppi_setup(db_radio_mode_t protocol) {
     // Enable PPI channels
     NRF_PPI->CHENSET = (1 << PPI_CH_TXENABLE_SYNCH) |
                        (1 << PPI_CH_READY) |
@@ -101,7 +101,7 @@ void _ppi_setup(db_radio_mode_t mode) {
 
     // Set event and task endpoints for radio ADDRESS/FRAMESTART event (1)
     uint32_t radio_events_payload_start;
-    if (mode == DB_RADIO_IEEE802154_250Kbit) {
+    if (protocol == DB_RADIO_IEEE802154_250Kbit) {
         radio_events_payload_start = (uint32_t)&NRF_RADIO->EVENTS_FRAMESTART;
     } else {
         radio_events_payload_start = (uint32_t)&NRF_RADIO->EVENTS_ADDRESS;
