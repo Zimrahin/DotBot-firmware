@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <nrf52840_bitfields.h>
 
 // Include BSP packages
 #include "board.h"
