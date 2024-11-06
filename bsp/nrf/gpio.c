@@ -74,7 +74,8 @@ void db_gpio_init_irq(const gpio_t *gpio, gpio_mode_t mode, gpio_irq_edge_t edge
     _gpio_vars.events[gpio_pin_idx].callback = callback;
     _gpio_vars.events[gpio_pin_idx].ctx      = ctx;
 
-    db_gpio_init(gpio, mode);
+    // db_gpio_init(gpio, mode);
+    (void)mode;
     NVIC_EnableIRQ(GPIOTE_IRQn);
 
     NRF_GPIOTE->CONFIG[gpio_pin_idx] = (GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) |

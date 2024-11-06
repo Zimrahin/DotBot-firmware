@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdbool.h>
 
 #include "clock.h"
 #include "radio.h"
@@ -234,8 +235,11 @@ void db_radio_set_network_address(uint32_t addr) {
     NRF_RADIO->BASE0 = addr;
 }
 
-void db_radio_memcpy2buffer(const uint8_t *tx_buffer, uint8_t length) {
-    radio_vars.pdu.length = length;
+void db_radio_memcpy2buffer(const uint8_t *tx_buffer, uint8_t length, bool update_length) {
+    // This condition is here so that I can memcpy an arbitrary length without changing the values stored in radio_vars
+    if (update_length) {
+        radio_vars.pdu.length = length;
+    }
     memcpy(radio_vars.pdu.payload, tx_buffer, length);
 }
 

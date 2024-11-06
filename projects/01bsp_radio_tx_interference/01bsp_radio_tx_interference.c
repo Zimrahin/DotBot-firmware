@@ -40,7 +40,8 @@
 #define GPIOTE_CH_IN  (2)  // GPIOTE channel for master clock TX synchronisation
 
 typedef struct __attribute__((packed)) {
-    uint8_t message[MAX_PAYLOAD_SIZE];  // Actual message
+    uint32_t msg_id;                     // Message ID (starts at 0 and increments by 1 for each message)
+    uint8_t  message[MAX_PAYLOAD_SIZE];  // Actual message
 } _radio_pdu_t;
 
 //=========================== variables =========================================
@@ -135,6 +136,15 @@ void _hf_timer_init(uint32_t us) {
     NRF_TIMER0->SHORTS = (TIMER_SHORTS_COMPARE0_CLEAR_Enabled << TIMER_SHORTS_COMPARE0_CLEAR_Pos) |
                          (TIMER_SHORTS_COMPARE0_STOP_Enabled << TIMER_SHORTS_COMPARE0_STOP_Pos);
 }
+
+//=========================== callbacks =========================================
+
+static void _gpio_callback(void *ctx) {
+    (void)ctx;
+    _radio_pdu.msg_id += 1;
+    db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, sizeof(_radio_pdu.msg_id), false);
+}
+
 //=========================== main ==============================================
 
 int main(void) {
@@ -146,15 +156,17 @@ int main(void) {
 
     // Configure Radio
     db_radio_init(NULL, DOTBOT_GW_RADIO_MODE);
-    db_radio_set_frequency(FREQUENCY);
-    NRF_RADIO->TXPOWER = (TX_POWER << RADIO_TXPOWER_TXPOWER_Pos);
-    db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, sizeof(_radio_pdu));  // Always send same blocker
+    db_radio_set_frequency(FREQUENCY);                                         // Set transmission frequency
+    NRF_RADIO->TXPOWER = (TX_POWER << RADIO_TXPOWER_TXPOWER_Pos);              // Set transmission power
+    db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, sizeof(_radio_pdu), true);  // Always send same blocker
+
     NRF_RADIO->SHORTS = (RADIO_SHORTS_READY_START_Enabled << RADIO_SHORTS_READY_START_Pos) |
                         (RADIO_SHORTS_END_DISABLE_Enabled << RADIO_SHORTS_END_DISABLE_Pos) |
                         (RADIO_SHORTS_ADDRESS_RSSISTART_Enabled << RADIO_SHORTS_ADDRESS_RSSISTART_Pos) |
                         (RADIO_SHORTS_DISABLED_RSSISTOP_Enabled << RADIO_SHORTS_DISABLED_RSSISTOP_Pos);
 
     // Set PPI and GPIOTE
+    db_gpio_init_irq(&_pin_square_in, DB_GPIO_IN, GPIOTE_CONFIG_POLARITY_Toggle, _gpio_callback, NULL);
     _gpiote_setup(&_pin_square_in, &_pin_radio_events_out);
     _ppi_setup(DOTBOT_GW_RADIO_MODE);
 
