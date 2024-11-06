@@ -243,7 +243,7 @@ void db_radio_tx(const uint8_t *tx_buffer, uint8_t length) {
     radio_vars.pdu.length = length;
     memcpy(radio_vars.pdu.payload, tx_buffer, length);
 
-    NRF_RADIO->SHORTS = RADIO_SHORTS_COMMON;
+    NRF_RADIO->SHORTS = RADIO_SHORTS_COMMON | (RADIO_SHORTS_DISABLED_RXEN_Enabled << RADIO_SHORTS_DISABLED_RXEN_Pos);
 
     if (radio_vars.state == RADIO_STATE_IDLE) {
 
@@ -257,7 +257,9 @@ void db_radio_tx(const uint8_t *tx_buffer, uint8_t length) {
         // We also clear both flags to avoid insta-triggering an interrupt as soon as we assert INTENSET
         NRF_RADIO->EVENTS_ADDRESS  = 0;
         NRF_RADIO->EVENTS_DISABLED = 0;
+        _radio_enable();
     }
+    radio_vars.state = RADIO_STATE_RX;
 }
 
 void db_radio_rx(void) {
