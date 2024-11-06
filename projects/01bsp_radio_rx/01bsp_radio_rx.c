@@ -20,7 +20,6 @@
 #include "board_config.h"
 #include "gpio.h"
 #include "radio.h"
-#include "timer_hf.h"
 #include "uart.h"
 #include "hdlc.h"
 
@@ -78,22 +77,15 @@ static void _radio_callback(uint8_t *packet, uint8_t length) {
 //=========================== main ==============================================
 
 int main(void) {
-
-    // Turn ON the DotBot board regulator
-    db_board_init();
-
-    //=========================== Initialize GPIO and timer =====================
-
+    // Initialize GPIO
     db_gpio_init(&_dbg_pin, DB_GPIO_OUT);
-    db_timer_hf_init(0);
 
-    //=========================== Configure Radio ===============================
-
+    // Configure Radio
     db_radio_init(&_radio_callback, DOTBOT_GW_RADIO_MODE);
     db_radio_set_frequency(FREQUENCY);
     db_radio_rx();
 
-    //=========================== Initialize UART ===============================
+    // Initialize UART
 
     // db_uart_init(DB_UART_INDEX, &db_uart_rx, &db_uart_tx, DB_UART_BAUDRATE, &_uart_callback);
     db_uart_init(DB_UART_INDEX, &db_uart_rx, &db_uart_tx, DB_UART_BAUDRATE, NULL);
