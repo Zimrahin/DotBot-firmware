@@ -237,7 +237,6 @@ void db_radio_set_network_address(uint32_t addr) {
 void db_radio_memcpy2buffer(const uint8_t *tx_buffer, uint8_t length) {
     radio_vars.pdu.length = length;
     memcpy(radio_vars.pdu.payload, tx_buffer, length);
-    NRF_RADIO->SHORTS = RADIO_SHORTS_COMMON;
 }
 
 void db_radio_tx(const uint8_t *tx_buffer, uint8_t length) {
