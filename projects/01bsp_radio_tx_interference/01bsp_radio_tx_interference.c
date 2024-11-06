@@ -123,9 +123,6 @@ void _ppi_setup(db_radio_mode_t mode) {
 //=========================== main ==============================================
 
 int main(void) {
-    // Turn ON the DotBot board regulator
-    db_board_init();
-
     // Initialize message to _radio_pdu_t struct
     memcpy(_radio_pdu.message, packet_tx, sizeof(packet_tx));
 
