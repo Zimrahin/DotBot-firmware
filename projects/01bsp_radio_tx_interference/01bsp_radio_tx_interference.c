@@ -46,10 +46,10 @@ typedef struct __attribute__((packed)) {
 
 //=========================== variables =========================================
 
-static const uint8_t packet_tx[] = {
-    0x00, 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E,  //
-    0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,  //
-};  // 16 Bytes long
+// static const uint8_t packet_tx[] = {
+//     0x00, 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E,  //
+//     0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,  //
+// };  // 16 Bytes long
 
 static const gpio_t _pin_square_in        = { .port = DB_LED1_PORT, .pin = DB_LED1_PIN };  // Square signal from master
 static const gpio_t _pin_radio_events_out = { .port = DB_LED2_PORT, .pin = DB_LED2_PIN };  // Show radio events in digital analyser
