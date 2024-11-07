@@ -2,7 +2,7 @@
  * @file
  * @ingroup samples_bsp
  *
- * @brief This example shows how to transmit synched interference packets over the radio
+ * @brief This example shows how to transmit synched packets over the radio
  *
  * @author Diego Badillo-San-Juan <diego.badillo-san-juan@inria.fr>
  *
@@ -26,7 +26,7 @@
 
 //=========================== defines ===========================================
 
-#define MAX_PAYLOAD_SIZE (16)  // Maximum message size
+#define MAX_PAYLOAD_SIZE (120)  // Maximum message size
 
 #define PPI_CH_TXENABLE_SYNCH     (0)  // PPI channel destined to set TXENABLE in synch with master clock
 #define PPI_CH_READY              (1)  // PPI channel destined to radio TX_READY event debugging
@@ -156,9 +156,9 @@ int main(void) {
 
     // Configure Radio
     db_radio_init(NULL, DOTBOT_GW_RADIO_MODE);
-    db_radio_set_frequency(FREQUENCY);                                         // Set transmission frequency
-    NRF_RADIO->TXPOWER = (TX_POWER << RADIO_TXPOWER_TXPOWER_Pos);              // Set transmission power
-    db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, sizeof(_radio_pdu), true);  // Always send same blocker
+    db_radio_set_frequency(FREQUENCY);                                                                    // Set transmission frequency
+    NRF_RADIO->TXPOWER = (TX_POWER << RADIO_TXPOWER_TXPOWER_Pos);                                         // Set transmission power
+    db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, sizeof(packet_tx) + sizeof(_radio_pdu.msg_id), true);  // Always send same blocker
 
     NRF_RADIO->SHORTS = (RADIO_SHORTS_READY_START_Enabled << RADIO_SHORTS_READY_START_Pos) |
                         (RADIO_SHORTS_END_DISABLE_Enabled << RADIO_SHORTS_END_DISABLE_Pos) |
