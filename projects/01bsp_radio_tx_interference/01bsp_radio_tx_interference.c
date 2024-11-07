@@ -80,13 +80,22 @@ void _ppi_setup(db_radio_mode_t protocol) {
                        (1 << PPI_CH_ADDRESS_FRAMESTART) |
                        (1 << PPI_CH_PAYLOAD) |
                        (1 << PPI_CH_END) |
-                       (1 << PPI_CH_PHYEND) |
-                       (1 << PPI_CH_TIMER_START);
+                       (1 << PPI_CH_PHYEND);
+#if DELAY_US != 0
+    NRF_PPI->CHENSET |= (1 << PPI_CH_TIMER_START);
+#endif
 
     // Define GPIOTE tasks for transmission visualisation in digital analyser
     uint32_t gpiote_tasks_set = (uint32_t)&NRF_GPIOTE->TASKS_SET[GPIOTE_CH_OUT];  // Set to (1)
     uint32_t gpiote_tasks_clr = (uint32_t)&NRF_GPIOTE->TASKS_CLR[GPIOTE_CH_OUT];  // Set to (0)
 
+#if DELAY_US == 0
+    // Set event and task endpoints to enable transmission
+    NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].EEP   = (uint32_t)&NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_IN];
+    NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].TEP   = (uint32_t)&NRF_RADIO->TASKS_TXEN;
+    NRF_PPI->FORK[PPI_CH_TXENABLE_SYNCH].TEP = gpiote_tasks_set;  // (1)
+    printf("hello");
+#else
     // Set event and task endpoints to start timer
     NRF_PPI->CH[PPI_CH_TIMER_START].EEP = (uint32_t)&NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_IN];
     NRF_PPI->CH[PPI_CH_TIMER_START].TEP = (uint32_t)&NRF_TIMER0->TASKS_START;
@@ -95,6 +104,7 @@ void _ppi_setup(db_radio_mode_t protocol) {
     NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].EEP   = (uint32_t)&NRF_TIMER0->EVENTS_COMPARE[0];
     NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].TEP   = (uint32_t)&NRF_RADIO->TASKS_TXEN;
     NRF_PPI->FORK[PPI_CH_TXENABLE_SYNCH].TEP = gpiote_tasks_set;  // (1)
+#endif
 
     // Set event and task endpoints for radio TX_READY event (0)
     NRF_PPI->CH[PPI_CH_READY].EEP = (uint32_t)&NRF_RADIO->EVENTS_TXREADY;
@@ -148,8 +158,10 @@ static void _gpio_callback(void *ctx) {
 //=========================== main ==============================================
 
 int main(void) {
+#if DELAY_US != 0
     // Initialise the TIMER0 at channel 0
     _hf_timer_init(DELAY_US);
+#endif
 
     // Initialize message to _radio_pdu_t struct
     memcpy(_radio_pdu.message, packet_tx, sizeof(packet_tx));
