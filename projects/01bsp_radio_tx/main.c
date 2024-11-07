@@ -10,4 +10,4 @@
 
 #include "conf.h"
 
-#include "01bsp_radio_tx_interference.c"
+#include "01bsp_radio_tx.c"
