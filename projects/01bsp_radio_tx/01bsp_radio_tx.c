@@ -147,13 +147,13 @@ void _hf_timer_init(uint32_t us) {
 }
 
 //=========================== callbacks =========================================
-
+#if INCREASE_ID
 static void _gpio_callback(void *ctx) {
     (void)ctx;
     _radio_pdu.msg_id += 1;
     db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, sizeof(_radio_pdu.msg_id), false);
 }
-
+#endif
 //=========================== main ==============================================
 
 int main(void) {
@@ -161,7 +161,6 @@ int main(void) {
     // Initialise the TIMER0 at channel 0
     _hf_timer_init(DELAY_US);
 #endif
-
     // Initialize message to _radio_pdu_t struct
     memcpy(_radio_pdu.message, packet_tx, sizeof(packet_tx));
 
@@ -177,7 +176,9 @@ int main(void) {
                         (RADIO_SHORTS_DISABLED_RSSISTOP_Enabled << RADIO_SHORTS_DISABLED_RSSISTOP_Pos);
 
     // Set PPI and GPIOTE
+#if INCREASE_ID
     db_gpio_init_irq(&_pin_square_in, DB_GPIO_IN, GPIOTE_CONFIG_POLARITY_Toggle, _gpio_callback, NULL);
+#endif
     _gpiote_setup(&_pin_square_in, &_pin_radio_events_out);
     _ppi_setup(DOTBOT_GW_RADIO_MODE);
 
