@@ -28,13 +28,13 @@
 
 #define MAX_PAYLOAD_SIZE (120)  // Maximum message size
 
-#define PPI_CH_TXENABLE_SYNCH     (0)  // PPI channel destined to set TXENABLE in synch with master clock
-#define PPI_CH_READY              (1)  // PPI channel destined to radio TX_READY event debugging
-#define PPI_CH_ADDRESS_FRAMESTART (2)  // PPI channel destined to radio ADDRESS or FRAMESTART event debugging
-#define PPI_CH_PAYLOAD            (3)  // PPI channel destined to radio PAYLOAD event debugging
-#define PPI_CH_END                (4)  // PPI channel destined to radio PHYEND event debugging
-#define PPI_CH_PHYEND             (5)  // PPI channel destined to radio DISABLED event debugging
-#define PPI_CH_TIMER_START        (6)  // PPI channel destined to start the timer
+#define PPI_CH_TXENABLE_SYNCH (0)  // PPI channel destined to set TXENABLE in synch with master clock
+#define PPI_CH_READY          (1)  // PPI channel destined to radio TX_READY event debugging
+#define PPI_CH_FRAMESTART     (2)  // PPI channel destined to radio FRAMESTART event debugging
+#define PPI_CH_PAYLOAD        (3)  // PPI channel destined to radio PAYLOAD event debugging
+#define PPI_CH_END            (4)  // PPI channel destined to radio PHYEND event debugging
+#define PPI_CH_PHYEND         (5)  // PPI channel destined to radio DISABLED event debugging
+#define PPI_CH_TIMER_START    (6)  // PPI channel destined to start the timer
 
 #define GPIOTE_CH_OUT (1)  // GPIOTE channel for RADIO TX visualization
 #define GPIOTE_CH_IN  (2)  // GPIOTE channel for master clock TX synchronisation
@@ -68,11 +68,11 @@ void _gpiote_setup(const gpio_t *gpio_in, const gpio_t *gpio_out) {
                                         (GPIOTE_CONFIG_OUTINIT_Low << GPIOTE_CONFIG_OUTINIT_Pos);
 }
 
-void _ppi_setup(db_radio_mode_t protocol) {
+void _ppi_setup(void) {
     // Enable PPI channels
     NRF_PPI->CHENSET = (1 << PPI_CH_TXENABLE_SYNCH) |
                        (1 << PPI_CH_READY) |
-                       (1 << PPI_CH_ADDRESS_FRAMESTART) |
+                       (1 << PPI_CH_FRAMESTART) |
                        (1 << PPI_CH_PAYLOAD) |
                        (1 << PPI_CH_END) |
                        (1 << PPI_CH_PHYEND);
@@ -104,15 +104,9 @@ void _ppi_setup(db_radio_mode_t protocol) {
     NRF_PPI->CH[PPI_CH_READY].EEP = (uint32_t)&NRF_RADIO->EVENTS_TXREADY;
     NRF_PPI->CH[PPI_CH_READY].TEP = gpiote_tasks_clr;  // (0)
 
-    // Set event and task endpoints for radio ADDRESS/FRAMESTART event (1)
-    uint32_t radio_events_payload_start;
-    if (protocol == DB_RADIO_IEEE802154_250Kbit) {
-        radio_events_payload_start = (uint32_t)&NRF_RADIO->EVENTS_FRAMESTART;
-    } else {
-        radio_events_payload_start = (uint32_t)&NRF_RADIO->EVENTS_ADDRESS;
-    }
-    NRF_PPI->CH[PPI_CH_ADDRESS_FRAMESTART].EEP = radio_events_payload_start;
-    NRF_PPI->CH[PPI_CH_ADDRESS_FRAMESTART].TEP = gpiote_tasks_set;  // (1)
+    // Set event and task endpoints for radio FRAMESTART event (1)
+    NRF_PPI->CH[PPI_CH_FRAMESTART].EEP = (uint32_t)&NRF_RADIO->EVENTS_FRAMESTART;
+    NRF_PPI->CH[PPI_CH_FRAMESTART].TEP = gpiote_tasks_set;  // (1)
 
     // Set event and task endpoints for radio PAYLOAD event (0)
     NRF_PPI->CH[PPI_CH_PAYLOAD].EEP = (uint32_t)&NRF_RADIO->EVENTS_PAYLOAD;
@@ -175,7 +169,7 @@ int main(void) {
     db_gpio_init_irq(&_pin_square_in, DB_GPIO_IN, GPIOTE_CONFIG_POLARITY_Toggle, _gpio_callback, NULL);
 #endif
     _gpiote_setup(&_pin_square_in, &_pin_radio_events_out);
-    _ppi_setup(DOTBOT_GW_RADIO_MODE);
+    _ppi_setup();
 
     while (1) {
         __WFI();  // Wait for interruption
