@@ -33,9 +33,6 @@ static void _toggle_callback(void) {
 
 //=========================== main ==============================================
 int main(void) {
-    // Turn ON the DotBot board regulator
-    db_board_init();
-
     // Initialize GPIO and timer
     db_gpio_init(&_pin_square_out, DB_GPIO_OUT);
     db_timer_init(0);
