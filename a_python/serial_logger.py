@@ -113,7 +113,8 @@ class SerialReader:
         plt.ylabel("Message")
 
         # Create a box with payload details
-        info_text = f"ID: {payload_data['id']}\nLength: {payload_data['length']}\n" f"RSSI: {payload_data['rssi']}\nCRC: {payload_data['crc']}"
+        crc_text = "OK" if payload_data['crc'] else "ERROR"
+        info_text = f"ID: {payload_data['id']}\nLength: {payload_data['length']} B\nRSSI: {payload_data['rssi']} dBm\nCRC: {crc_text}"
         plt.gca().text(1.05, 0.55, info_text, fontsize=10, ha="left", va="top", transform=plt.gca().transAxes, bbox=dict(facecolor="white", alpha=0.5))
 
         # Show grid and update the plot
