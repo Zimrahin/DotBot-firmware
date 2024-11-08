@@ -33,7 +33,7 @@
 #define PPI_CH_FRAMESTART     (2)  // PPI channel destined to radio FRAMESTART event debugging
 #define PPI_CH_PAYLOAD        (3)  // PPI channel destined to radio PAYLOAD event debugging
 #define PPI_CH_END            (4)  // PPI channel destined to radio PHYEND event debugging
-#define PPI_CH_PHYEND         (5)  // PPI channel destined to radio DISABLED event debugging
+#define PPI_CH_DISABLED       (5)  // PPI channel destined to radio DISABLED event debugging
 #define PPI_CH_TIMER_START    (6)  // PPI channel destined to start the timer
 
 #define GPIOTE_CH_OUT (1)  // GPIOTE channel for RADIO TX visualization
@@ -75,7 +75,7 @@ void _ppi_setup(void) {
                        (1 << PPI_CH_FRAMESTART) |
                        (1 << PPI_CH_PAYLOAD) |
                        (1 << PPI_CH_END) |
-                       (1 << PPI_CH_PHYEND);
+                       (1 << PPI_CH_DISABLED);
 #if DELAY_US
     NRF_PPI->CHENSET |= (1 << PPI_CH_TIMER_START);
 #endif
@@ -117,8 +117,8 @@ void _ppi_setup(void) {
     NRF_PPI->CH[PPI_CH_END].TEP = gpiote_tasks_set;  // (1)
 
     // Set event and task endpoints for radio PHYEND event (0)
-    NRF_PPI->CH[PPI_CH_PHYEND].EEP = (uint32_t)&NRF_RADIO->EVENTS_PHYEND;
-    NRF_PPI->CH[PPI_CH_PHYEND].TEP = gpiote_tasks_clr;  // (0)
+    NRF_PPI->CH[PPI_CH_DISABLED].EEP = (uint32_t)&NRF_RADIO->EVENTS_DISABLED;
+    NRF_PPI->CH[PPI_CH_DISABLED].TEP = gpiote_tasks_clr;  // (0)
 }
 
 void _hf_timer_init(uint32_t us) {
