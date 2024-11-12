@@ -76,7 +76,7 @@ void _ppi_setup(void) {
                        (1 << PPI_CH_PAYLOAD) |
                        (1 << PPI_CH_END) |
                        (1 << PPI_CH_DISABLED);
-#if DELAY_US
+#if DELAY_us
     NRF_PPI->CHENSET |= (1 << PPI_CH_TIMER_START);
 #endif
 
@@ -84,7 +84,7 @@ void _ppi_setup(void) {
     uint32_t gpiote_tasks_set = (uint32_t)&NRF_GPIOTE->TASKS_SET[GPIOTE_CH_OUT];  // Set to (1)
     uint32_t gpiote_tasks_clr = (uint32_t)&NRF_GPIOTE->TASKS_CLR[GPIOTE_CH_OUT];  // Set to (0)
 
-#if DELAY_US
+#if DELAY_us
     // Set event and task endpoints to start timer
     NRF_PPI->CH[PPI_CH_TIMER_START].EEP = (uint32_t)&NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_IN];
     NRF_PPI->CH[PPI_CH_TIMER_START].TEP = (uint32_t)&NRF_TIMER0->TASKS_START;
@@ -146,9 +146,9 @@ static void _gpio_callback(void *ctx) {
 //=========================== main ==============================================
 
 int main(void) {
-#if DELAY_US
+#if DELAY_us
     // Initialise the TIMER0 at channel 0
-    _hf_timer_init(DELAY_US);
+    _hf_timer_init(DELAY_us);
 #endif
     // Initialize message to _radio_pdu_t struct
     memcpy(_radio_pdu.message, packet_tx, sizeof(packet_tx));
