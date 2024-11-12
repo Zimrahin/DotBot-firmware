@@ -35,9 +35,11 @@
 #define PPI_CH_END            (4)  // PPI channel destined to radio PHYEND event debugging
 #define PPI_CH_DISABLED       (5)  // PPI channel destined to radio DISABLED event debugging
 #define PPI_CH_TIMER_START    (6)  // PPI channel destined to start the timer
+#define PPI_CH_MASTER_CLOCK   (7)  // PPI channel destined to master clock synthesis
 
-#define GPIOTE_CH_OUT (1)  // GPIOTE channel for RADIO TX visualization
-#define GPIOTE_CH_IN  (2)  // GPIOTE channel for master clock TX synchronisation
+#define GPIOTE_CH_OUT        (1)  // GPIOTE channel for RADIO TX visualization
+#define GPIOTE_CH_IN         (2)  // GPIOTE channel for master clock TX synchronisation
+#define GPIOTE_CH_OUT_MASTER (3)  // GPIOTE channel for master clock synthesis
 
 typedef struct __attribute__((packed)) {
     uint32_t msg_id;                     // Message ID (starts at 0 and increments by 1 for each message)
@@ -48,12 +50,13 @@ typedef struct __attribute__((packed)) {
 
 static const gpio_t _pin_square_in        = { .port = DB_LED1_PORT, .pin = DB_LED1_PIN };  // Square signal from master
 static const gpio_t _pin_radio_events_out = { .port = DB_LED2_PORT, .pin = DB_LED2_PIN };  // Show radio events in digital analyser
+static const gpio_t _pin_square_out       = { .port = DB_LED3_PORT, .pin = DB_LED3_PIN };
 
 static _radio_pdu_t _radio_pdu = { 0 };
 
 //=========================== functions =========================================
 
-void _gpiote_setup(const gpio_t *gpio_in, const gpio_t *gpio_out) {
+void _gpiote_setup(const gpio_t *gpio_in, const gpio_t *gpio_out, const gpio_t *gpio_out_master) {
     // Configure input GPIO pin for enabling a synched transmission to a master clock
     NRF_GPIOTE->CONFIG[GPIOTE_CH_IN] = (GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) |
                                        (gpio_in->pin << GPIOTE_CONFIG_PSEL_Pos) |
@@ -66,6 +69,13 @@ void _gpiote_setup(const gpio_t *gpio_in, const gpio_t *gpio_out) {
                                         (gpio_out->port << GPIOTE_CONFIG_PORT_Pos) |
                                         (GPIOTE_CONFIG_POLARITY_None << GPIOTE_CONFIG_POLARITY_Pos) |
                                         (GPIOTE_CONFIG_OUTINIT_Low << GPIOTE_CONFIG_OUTINIT_Pos);
+
+    // Configure output GPIO for master clock
+    NRF_GPIOTE->CONFIG[GPIOTE_CH_OUT_MASTER] = (GPIOTE_CONFIG_MODE_Task << GPIOTE_CONFIG_MODE_Pos) |
+                                               (gpio_out_master->pin << GPIOTE_CONFIG_PSEL_Pos) |
+                                               (gpio_out_master->port << GPIOTE_CONFIG_PORT_Pos) |
+                                               (GPIOTE_CONFIG_POLARITY_Toggle << GPIOTE_CONFIG_POLARITY_Pos) |
+                                               (GPIOTE_CONFIG_OUTINIT_Low << GPIOTE_CONFIG_OUTINIT_Pos);
 }
 
 void _ppi_setup(void) {
@@ -76,6 +86,15 @@ void _ppi_setup(void) {
                        (1 << PPI_CH_PAYLOAD) |
                        (1 << PPI_CH_END) |
                        (1 << PPI_CH_DISABLED);
+
+    // Master clock settings
+    NRF_PPI->CHENSET |= (1 << PPI_CH_MASTER_CLOCK);
+    uint32_t gpiote_tasks_toggle = (uint32_t)&NRF_GPIOTE->TASKS_OUT[GPIOTE_CH_OUT_MASTER];  // Toggle
+    // Set event and task endpoints to start timer
+    NRF_PPI->CH[PPI_CH_MASTER_CLOCK].EEP   = (uint32_t)&NRF_TIMER1->EVENTS_COMPARE[1];
+    NRF_PPI->CH[PPI_CH_MASTER_CLOCK].TEP   = (uint32_t)&NRF_TIMER1->TASKS_START;
+    NRF_PPI->FORK[PPI_CH_MASTER_CLOCK].TEP = gpiote_tasks_toggle;  // (1)
+
 #if DELAY_us
     NRF_PPI->CHENSET |= (1 << PPI_CH_TIMER_START);
 #endif
@@ -135,6 +154,22 @@ void _hf_timer_init(uint32_t us) {
                          (TIMER_SHORTS_COMPARE0_STOP_Enabled << TIMER_SHORTS_COMPARE0_STOP_Pos);
 }
 
+void _master_clock_init(uint32_t ms) {
+    db_hfclk_init();  // Start the high frequency clock if not already on
+
+    NRF_TIMER1->MODE        = (TIMER_MODE_MODE_Timer << TIMER_MODE_MODE_Pos);
+    NRF_TIMER1->TASKS_CLEAR = (TIMER_TASKS_CLEAR_TASKS_CLEAR_Trigger << TIMER_TASKS_CLEAR_TASKS_CLEAR_Pos);  // Clear timer
+    NRF_TIMER1->BITMODE     = (TIMER_BITMODE_BITMODE_32Bit << TIMER_BITMODE_BITMODE_Pos);                    // 32 bits
+    NRF_TIMER1->PRESCALER   = (4 << TIMER_PRESCALER_PRESCALER_Pos);                                          // 16/2⁴= 1MHz
+    NRF_TIMER1->CC[1]       = 1000 * ms;                                                                     // Set the master clock period
+
+    // Disable and clear the timer immediately after EVENTS_COMPARE[0] event
+    NRF_TIMER1->SHORTS = (TIMER_SHORTS_COMPARE1_CLEAR_Enabled << TIMER_SHORTS_COMPARE1_CLEAR_Pos) |
+                         (TIMER_SHORTS_COMPARE1_STOP_Enabled << TIMER_SHORTS_COMPARE1_STOP_Pos);
+
+    NRF_TIMER1->TASKS_START = (TIMER_TASKS_START_TASKS_START_Trigger << TIMER_TASKS_START_TASKS_START_Pos);
+}
+
 //=========================== callbacks =========================================
 #if INCREASE_ID
 static void _gpio_callback(void *ctx) {
@@ -168,8 +203,9 @@ int main(void) {
 #if INCREASE_ID
     db_gpio_init_irq(&_pin_square_in, DB_GPIO_IN, GPIOTE_CONFIG_POLARITY_Toggle, _gpio_callback, NULL);
 #endif
-    _gpiote_setup(&_pin_square_in, &_pin_radio_events_out);
+    _gpiote_setup(&_pin_square_in, &_pin_radio_events_out, &_pin_square_out);
     _ppi_setup();
+    _master_clock_init(2);
 
     while (1) {
         __WFI();  // Wait for interruption

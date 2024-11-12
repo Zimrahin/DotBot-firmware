@@ -3,9 +3,9 @@
 
 #define DOTBOT_GW_RADIO_MODE DB_RADIO_BLE_1MBit
 #define TX_POWER             RADIO_TXPOWER_TXPOWER_0dBm  // PosXdBm, 0dBm, NegXdBm
-#define INCREASE_ID          (1)                         // (0) Don't increase (Blocker), (1) Increase (Main transmitter)
+#define INCREASE_ID          (0)                         // (0) Don't increase (Blocker), (1) Increase (Main transmitter)
 #define DELAY_us             (0)                         // Wait DELAY_us before sending
-#define FREQUENCY            (25)                        // (2400 + FREQUENCY) MHz
+#define FREQUENCY            (35)                        // (2400 + FREQUENCY) MHz
 
 static const uint8_t packet_tx[] = {
     0x00, 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E,  //
