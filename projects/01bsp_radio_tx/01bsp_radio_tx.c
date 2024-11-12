@@ -26,7 +26,7 @@
 
 //=========================== defines ===========================================
 
-#define MAX_PAYLOAD_SIZE (120)  // Maximum message size
+#define MAX_PAYLOAD_SIZE (120)  // Maximum message size (without considering 4 byte ID)
 
 #define PPI_CH_TXENABLE_SYNCH (0)  // PPI channel destined to set TXENABLE in synch with master clock
 #define PPI_CH_READY          (1)  // PPI channel destined to radio TX_READY event debugging
