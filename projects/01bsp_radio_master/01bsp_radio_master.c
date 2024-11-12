@@ -38,7 +38,7 @@ int main(void) {
     db_timer_init(0);
 
     // Set timer callbacks
-    db_timer_set_periodic_ms(TIMER_DEV, 0, DELAY_MS, &_toggle_callback);
+    db_timer_set_periodic_ms(TIMER_DEV, 0, DELAY_ms, &_toggle_callback);
 
     while (1) {
         __WFI();  // Wait for interruption
