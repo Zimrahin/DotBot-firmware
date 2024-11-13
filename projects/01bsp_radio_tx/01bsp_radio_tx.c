@@ -160,9 +160,7 @@ int main(void) {
     db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, sizeof(packet_tx) + sizeof(_radio_pdu.msg_id), true);  // Always send same payload
 
     NRF_RADIO->SHORTS = (RADIO_SHORTS_READY_START_Enabled << RADIO_SHORTS_READY_START_Pos) |
-                        (RADIO_SHORTS_END_DISABLE_Enabled << RADIO_SHORTS_END_DISABLE_Pos) |
-                        (RADIO_SHORTS_ADDRESS_RSSISTART_Enabled << RADIO_SHORTS_ADDRESS_RSSISTART_Pos) |
-                        (RADIO_SHORTS_DISABLED_RSSISTOP_Enabled << RADIO_SHORTS_DISABLED_RSSISTOP_Pos);
+                        (RADIO_SHORTS_END_DISABLE_Enabled << RADIO_SHORTS_END_DISABLE_Pos);
 
     // Set PPI and GPIOTE
 #if INCREASE_ID
