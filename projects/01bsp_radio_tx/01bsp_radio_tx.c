@@ -121,14 +121,14 @@ void _ppi_setup(void) {
     NRF_PPI->CH[PPI_CH_DISABLED].TEP = gpiote_tasks_clr;  // (0)
 }
 
-void _hf_timer_init(uint32_t us) {
+void _hf_timer_init(uint32_t delay_us) {
     db_hfclk_init();  // Start the high frequency clock if not already on
 
     NRF_TIMER0->MODE        = (TIMER_MODE_MODE_Timer << TIMER_MODE_MODE_Pos);
     NRF_TIMER0->TASKS_CLEAR = (TIMER_TASKS_CLEAR_TASKS_CLEAR_Trigger << TIMER_TASKS_CLEAR_TASKS_CLEAR_Pos);  // Clear timer
     NRF_TIMER0->BITMODE     = (TIMER_BITMODE_BITMODE_16Bit << TIMER_BITMODE_BITMODE_Pos);                    // 16 bits should be enough (65 ms in total)
     NRF_TIMER0->PRESCALER   = (4 << TIMER_PRESCALER_PRESCALER_Pos);                                          // 16/2⁴= 1MHz
-    NRF_TIMER0->CC[0]       = us;                                                                            // Set the number of 1MHz ticks to wait for enabling EVENTS_COMPARE[0]
+    NRF_TIMER0->CC[0]       = delay_us;                                                                      // Set the number of 1MHz ticks to wait for enabling EVENTS_COMPARE[0]
 
     // Disable and clear the timer immediately after EVENTS_COMPARE[0] event
     NRF_TIMER0->SHORTS = (TIMER_SHORTS_COMPARE0_CLEAR_Enabled << TIMER_SHORTS_COMPARE0_CLEAR_Pos) |
