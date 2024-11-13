@@ -116,7 +116,7 @@ void _ppi_setup(void) {
     NRF_PPI->CH[PPI_CH_END].EEP = (uint32_t)&NRF_RADIO->EVENTS_END;
     NRF_PPI->CH[PPI_CH_END].TEP = gpiote_tasks_set;  // (1)
 
-    // Set event and task endpoints for radio PHYEND event (0)
+    // Set event and task endpoints for radio DISABLED event (0)
     NRF_PPI->CH[PPI_CH_DISABLED].EEP = (uint32_t)&NRF_RADIO->EVENTS_DISABLED;
     NRF_PPI->CH[PPI_CH_DISABLED].TEP = gpiote_tasks_clr;  // (0)
 }
