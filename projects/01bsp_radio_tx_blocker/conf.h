@@ -2,13 +2,13 @@
 #include "radio.h"
 
 #define DOTBOT_GW_RADIO_MODE DB_RADIO_IEEE802154_250Kbit
-#define TX_POWER             RADIO_TXPOWER_TXPOWER_Pos4dBm  // PosXdBm, 0dBm, NegXdBm
-#define INCREASE_ID          (0)                            // (0) Don't increase (Blocker), (1) Increase (Main transmitter)
-#define DELAY_us             (250)                          // Wait DELAY_US before sending
-#define FREQUENCY            (25)                           // (2400 + FREQUENCY) MHz
+#define TX_POWER             RADIO_TXPOWER_TXPOWER_0dBm  // PosXdBm, 0dBm, NegXdBm
+#define INCREASE_ID          (0)                         // (0) Don't increase (Blocker), (1) Increase (Main transmitter)
+#define DELAY_us             (255)                       // Wait DELAY_US before sending
+#define FREQUENCY            (25)                        // (2400 + FREQUENCY) MHz
 
 static const uint8_t packet_tx[] = {
-    0x00, 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E,  //
+    0xA0, 0xA2, 0xA4, 0xA6, 0xA8, 0xAA, 0xAC, 0xAE,  //
     // 0x10, 0x12, 0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E,  //
     // 0x20, 0x22, 0x24, 0x26, 0x28, 0x2A, 0x2C, 0x2E,  //
     // 0x30, 0x32, 0x34, 0x36, 0x38, 0x3A, 0x3C, 0x3E,  //
