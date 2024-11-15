@@ -1,12 +1,6 @@
 #include <nrf.h>
 #include "radio.h"
 
-#define DOTBOT_GW_RADIO_MODE DB_RADIO_BLE_1MBit
-#define TX_POWER             RADIO_TXPOWER_TXPOWER_0dBm  // PosXdBm, 0dBm, NegXdBm
-#define INCREASE_ID          (0)                         // (0) Don't increase (Blocker), (1) Increase (Main transmitter)
-#define DELAY_us             (940)                       // Wait DELAY_US before sending
-#define FREQUENCY            (25)                        // (2400 + FREQUENCY) MHz
-
 static const uint8_t packet_tx[] = {
     0xEE, 0xEC, 0xEA, 0xE8, 0xE6, 0xE4, 0xE2, 0xE0,  //
     0xDE, 0xDC, 0xDA, 0xD8, 0xD6, 0xD4, 0xD2, 0xD0,  //
@@ -23,4 +17,19 @@ static const uint8_t packet_tx[] = {
     0x2E, 0x2C, 0x2A, 0x28, 0x26, 0x24, 0x22, 0x20,  //
     0x1E, 0x1C, 0x1A, 0x18, 0x16, 0x14, 0x12, 0x10,  //
     0x0E, 0x0C, 0x0A, 0x08, 0x06, 0x04, 0x02, 0x00,  //
-};  //
+};  // 120 Bytes long
+
+typedef struct {
+    db_radio_mode_t radio_mode;    // DB_RADIO_BLE_1MBit, DB_RADIO_IEEE802154_250Kbit
+    uint8_t         tx_power;      // RADIO_TXPOWER_TXPOWER_XdBm: X = {PosxdBm, 0dBm, NegxdBm}
+    uint8_t         increase_id;   // (0) Don't increase (Blocker), (1) Increase (Main transmitter)
+    uint32_t        delay_us;      // Wait delay_us before sending
+    uint8_t         frequency;     // (2400 + frequency) MHz
+    uint8_t         sine_blocker;  // (0) Normal operation, (1) Use sinusoidal blocker
+    uint8_t         packet_size;   // Amount of bytes of packet_tx to send
+    const uint8_t  *packet_tx;     // Pointer to a predefined constant packet
+} radio_config_t;
+
+static const radio_config_t configs[] = {
+    { DB_RADIO_IEEE802154_250Kbit, RADIO_TXPOWER_TXPOWER_0dBm, 0, 255, 25, 0, 8, packet_tx },
+};

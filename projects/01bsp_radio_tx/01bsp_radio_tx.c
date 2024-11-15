@@ -76,29 +76,30 @@ void _ppi_setup(void) {
                        (1 << PPI_CH_PAYLOAD) |
                        (1 << PPI_CH_END) |
                        (1 << PPI_CH_DISABLED);
-#if DELAY_us
-    NRF_PPI->CHENSET |= (1 << PPI_CH_TIMER_START);
-#endif
+
+    if (configs[0].delay_us) {
+        NRF_PPI->CHENSET |= (1 << PPI_CH_TIMER_START);
+    }
 
     // Define GPIOTE tasks for transmission visualisation in digital analyser
     uint32_t gpiote_tasks_set = (uint32_t)&NRF_GPIOTE->TASKS_SET[GPIOTE_CH_OUT];  // Set to (1)
     uint32_t gpiote_tasks_clr = (uint32_t)&NRF_GPIOTE->TASKS_CLR[GPIOTE_CH_OUT];  // Set to (0)
 
-#if DELAY_us
-    // Set event and task endpoints to start timer
-    NRF_PPI->CH[PPI_CH_TIMER_START].EEP = (uint32_t)&NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_IN];
-    NRF_PPI->CH[PPI_CH_TIMER_START].TEP = (uint32_t)&NRF_TIMER0->TASKS_START;
+    if (configs[0].delay_us) {
+        // Set event and task endpoints to start timer
+        NRF_PPI->CH[PPI_CH_TIMER_START].EEP = (uint32_t)&NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_IN];
+        NRF_PPI->CH[PPI_CH_TIMER_START].TEP = (uint32_t)&NRF_TIMER0->TASKS_START;
 
-    // Set event and task endpoints to enable transmission
-    NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].EEP   = (uint32_t)&NRF_TIMER0->EVENTS_COMPARE[0];
-    NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].TEP   = (uint32_t)&NRF_RADIO->TASKS_TXEN;
-    NRF_PPI->FORK[PPI_CH_TXENABLE_SYNCH].TEP = gpiote_tasks_set;  // (1)
-#else
-    // Set event and task endpoints to enable transmission
-    NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].EEP   = (uint32_t)&NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_IN];
-    NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].TEP   = (uint32_t)&NRF_RADIO->TASKS_TXEN;
-    NRF_PPI->FORK[PPI_CH_TXENABLE_SYNCH].TEP = gpiote_tasks_set;  // (1)
-#endif
+        // Set event and task endpoints to enable transmission
+        NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].EEP   = (uint32_t)&NRF_TIMER0->EVENTS_COMPARE[0];
+        NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].TEP   = (uint32_t)&NRF_RADIO->TASKS_TXEN;
+        NRF_PPI->FORK[PPI_CH_TXENABLE_SYNCH].TEP = gpiote_tasks_set;  // (1)
+    } else {
+        // Set event and task endpoints to enable transmission
+        NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].EEP   = (uint32_t)&NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_IN];
+        NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].TEP   = (uint32_t)&NRF_RADIO->TASKS_TXEN;
+        NRF_PPI->FORK[PPI_CH_TXENABLE_SYNCH].TEP = gpiote_tasks_set;  // (1)
+    }
 
     // Set event and task endpoints for radio TX_READY event (0)
     NRF_PPI->CH[PPI_CH_READY].EEP = (uint32_t)&NRF_RADIO->EVENTS_TXREADY;
@@ -136,36 +137,36 @@ void _hf_timer_init(uint32_t delay_us) {
 }
 
 //=========================== callbacks =========================================
-#if INCREASE_ID
+
 static void _gpio_callback(void *ctx) {
     (void)ctx;
     _radio_pdu.msg_id += 1;
     db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, sizeof(_radio_pdu.msg_id), false);
 }
-#endif
+
 //=========================== main ==============================================
 
 int main(void) {
-#if DELAY_us
-    // Initialise the TIMER0 at channel 0
-    _hf_timer_init(DELAY_us);
-#endif
+    if (configs[0].delay_us) {
+        // Initialise the TIMER0 at channel 0
+        _hf_timer_init(configs[0].delay_us);
+    }
     // Initialize message to _radio_pdu_t struct
-    memcpy(_radio_pdu.message, packet_tx, sizeof(packet_tx));
+    memcpy(_radio_pdu.message, packet_tx, configs[0].packet_size);
 
     // Configure Radio
-    db_radio_init(NULL, DOTBOT_GW_RADIO_MODE);
-    db_radio_set_frequency(FREQUENCY);                                                                    // Set transmission frequency
-    NRF_RADIO->TXPOWER = (TX_POWER << RADIO_TXPOWER_TXPOWER_Pos);                                         // Set transmission power
-    db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, sizeof(packet_tx) + sizeof(_radio_pdu.msg_id), true);  // Always send same payload
+    db_radio_init(NULL, configs[0].radio_mode);
+    db_radio_set_frequency(configs[0].frequency);                                                              // Set transmission frequency
+    NRF_RADIO->TXPOWER = (configs[0].tx_power << RADIO_TXPOWER_TXPOWER_Pos);                                   // Set transmission power
+    db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, configs[0].packet_size + sizeof(_radio_pdu.msg_id), true);  // Always send same payload
 
     NRF_RADIO->SHORTS = (RADIO_SHORTS_READY_START_Enabled << RADIO_SHORTS_READY_START_Pos) |
                         (RADIO_SHORTS_END_DISABLE_Enabled << RADIO_SHORTS_END_DISABLE_Pos);
 
     // Set PPI and GPIOTE
-#if INCREASE_ID
-    db_gpio_init_irq(&_pin_square_in, DB_GPIO_IN, GPIOTE_CONFIG_POLARITY_Toggle, _gpio_callback, NULL);
-#endif
+    if (configs[0].increase_id) {
+        db_gpio_init_irq(&_pin_square_in, DB_GPIO_IN, GPIOTE_CONFIG_POLARITY_Toggle, _gpio_callback, NULL);
+    }
     _gpiote_setup(&_pin_square_in, &_pin_radio_events_out);
     _ppi_setup();
 
