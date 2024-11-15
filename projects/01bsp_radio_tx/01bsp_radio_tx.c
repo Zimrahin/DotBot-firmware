@@ -35,6 +35,7 @@
 #define PPI_CH_END            (4)  // PPI channel destined to radio PHYEND event debugging
 #define PPI_CH_DISABLED       (5)  // PPI channel destined to radio DISABLED event debugging
 #define PPI_CH_TIMER_START    (6)  // PPI channel destined to start the timer
+#define PPI_CH_DISABLE        (7)  // PPI channel destined to radio DISABLE task debugging
 
 #define GPIOTE_CH_OUT (1)  // GPIOTE channel for RADIO TX visualization
 #define GPIOTE_CH_IN  (2)  // GPIOTE channel for master clock TX synchronisation
@@ -69,60 +70,104 @@ void _gpiote_setup(const gpio_t *gpio_in, const gpio_t *gpio_out) {
 }
 
 void _ppi_setup(void) {
-    // Enable PPI channels
-    NRF_PPI->CHENSET = (1 << PPI_CH_TXENABLE_SYNCH) |
-                       (1 << PPI_CH_READY) |
-                       (1 << PPI_CH_FRAMESTART) |
-                       (1 << PPI_CH_PAYLOAD) |
-                       (1 << PPI_CH_END) |
-                       (1 << PPI_CH_DISABLED);
+    // Reset enabled PPI channels each function call
+    NRF_PPI->CHENSET = 0;
 
-    if (configs[0].delay_us) {
-        NRF_PPI->CHENSET |= (1 << PPI_CH_TIMER_START);
+    // Enable PPI channels
+    if (configs[0].sine_blocker_us) {
+        NRF_PPI->CHENSET = (1 << PPI_CH_TXENABLE_SYNCH) |
+                           (1 << PPI_CH_READY) |
+                           (1 << PPI_CH_DISABLE) |
+                           (1 << PPI_CH_DISABLED) |
+                           (1 << PPI_CH_TIMER_START);
+    } else {
+        NRF_PPI->CHENSET = (1 << PPI_CH_TXENABLE_SYNCH) |
+                           (1 << PPI_CH_READY) |
+                           (1 << PPI_CH_FRAMESTART) |
+                           (1 << PPI_CH_PAYLOAD) |
+                           (1 << PPI_CH_END) |
+                           (1 << PPI_CH_DISABLED);
+
+        if (configs[0].delay_us) {
+            NRF_PPI->CHENSET |= (1 << PPI_CH_TIMER_START);
+        }
     }
 
     // Define GPIOTE tasks for transmission visualisation in digital analyser
     uint32_t gpiote_tasks_set = (uint32_t)&NRF_GPIOTE->TASKS_SET[GPIOTE_CH_OUT];  // Set to (1)
     uint32_t gpiote_tasks_clr = (uint32_t)&NRF_GPIOTE->TASKS_CLR[GPIOTE_CH_OUT];  // Set to (0)
 
-    if (configs[0].delay_us) {
+    if (configs[0].sine_blocker_us) {
         // Set event and task endpoints to start timer
         NRF_PPI->CH[PPI_CH_TIMER_START].EEP = (uint32_t)&NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_IN];
         NRF_PPI->CH[PPI_CH_TIMER_START].TEP = (uint32_t)&NRF_TIMER0->TASKS_START;
 
-        // Set event and task endpoints to enable transmission
-        NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].EEP   = (uint32_t)&NRF_TIMER0->EVENTS_COMPARE[0];
+        if (configs[0].delay_us) {
+            // Start transmission after a delay
+            NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].EEP = (uint32_t)&NRF_TIMER0->EVENTS_COMPARE[0];
+        } else {
+            // Start transmission immediately
+            NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].EEP = (uint32_t)&NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_IN];
+        }
         NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].TEP   = (uint32_t)&NRF_RADIO->TASKS_TXEN;
         NRF_PPI->FORK[PPI_CH_TXENABLE_SYNCH].TEP = gpiote_tasks_set;  // (1)
+
+        // Set event and task endpoints for radio TX_READY event (0)
+        NRF_PPI->CH[PPI_CH_READY].EEP = (uint32_t)&NRF_RADIO->EVENTS_TXREADY;
+        NRF_PPI->CH[PPI_CH_READY].TEP = gpiote_tasks_clr;  // (0)
+
+        // Set event and task endpoints for radio DISABLE task (after timer) (1)
+        NRF_PPI->CH[PPI_CH_DISABLE].EEP   = (uint32_t)&NRF_TIMER0->EVENTS_COMPARE[1];
+        NRF_PPI->CH[PPI_CH_DISABLE].TEP   = (uint32_t)&NRF_RADIO->TASKS_DISABLE;
+        NRF_PPI->FORK[PPI_CH_DISABLE].TEP = gpiote_tasks_set;  // (1)
+
+        // Set event and task endpoints for radio DISABLED event (0)
+        NRF_PPI->CH[PPI_CH_DISABLED].EEP = (uint32_t)&NRF_RADIO->EVENTS_DISABLED;
+        NRF_PPI->CH[PPI_CH_DISABLED].TEP = gpiote_tasks_clr;  // (0)
+
     } else {
-        // Set event and task endpoints to enable transmission
-        NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].EEP   = (uint32_t)&NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_IN];
-        NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].TEP   = (uint32_t)&NRF_RADIO->TASKS_TXEN;
-        NRF_PPI->FORK[PPI_CH_TXENABLE_SYNCH].TEP = gpiote_tasks_set;  // (1)
+        if (configs[0].delay_us) {
+            // Set event and task endpoints to start timer
+            NRF_PPI->CH[PPI_CH_TIMER_START].EEP = (uint32_t)&NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_IN];
+            NRF_PPI->CH[PPI_CH_TIMER_START].TEP = (uint32_t)&NRF_TIMER0->TASKS_START;
+
+            // Set event and task endpoints to enable transmission
+            NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].EEP   = (uint32_t)&NRF_TIMER0->EVENTS_COMPARE[0];
+            NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].TEP   = (uint32_t)&NRF_RADIO->TASKS_TXEN;
+            NRF_PPI->FORK[PPI_CH_TXENABLE_SYNCH].TEP = gpiote_tasks_set;  // (1)
+        } else {
+            // Set event and task endpoints to enable transmission
+            NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].EEP   = (uint32_t)&NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_IN];
+            NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].TEP   = (uint32_t)&NRF_RADIO->TASKS_TXEN;
+            NRF_PPI->FORK[PPI_CH_TXENABLE_SYNCH].TEP = gpiote_tasks_set;  // (1)
+        }
+
+        // Set event and task endpoints for radio TX_READY event (0)
+        NRF_PPI->CH[PPI_CH_READY].EEP = (uint32_t)&NRF_RADIO->EVENTS_TXREADY;
+        NRF_PPI->CH[PPI_CH_READY].TEP = gpiote_tasks_clr;  // (0)
+
+        // Set event and task endpoints for radio FRAMESTART event (1)
+        NRF_PPI->CH[PPI_CH_FRAMESTART].EEP = (uint32_t)&NRF_RADIO->EVENTS_FRAMESTART;
+        NRF_PPI->CH[PPI_CH_FRAMESTART].TEP = gpiote_tasks_set;  // (1)
+
+        // Set event and task endpoints for radio PAYLOAD event (0)
+        NRF_PPI->CH[PPI_CH_PAYLOAD].EEP = (uint32_t)&NRF_RADIO->EVENTS_PAYLOAD;
+        NRF_PPI->CH[PPI_CH_PAYLOAD].TEP = gpiote_tasks_clr;  // (0)
+
+        // Set event and task endpoints for radio END event (1)
+        NRF_PPI->CH[PPI_CH_END].EEP = (uint32_t)&NRF_RADIO->EVENTS_END;
+        NRF_PPI->CH[PPI_CH_END].TEP = gpiote_tasks_set;  // (1)
+
+        // Set event and task endpoints for radio DISABLED event (0)
+        NRF_PPI->CH[PPI_CH_DISABLED].EEP = (uint32_t)&NRF_RADIO->EVENTS_DISABLED;
+        NRF_PPI->CH[PPI_CH_DISABLED].TEP = gpiote_tasks_clr;  // (0)
     }
-
-    // Set event and task endpoints for radio TX_READY event (0)
-    NRF_PPI->CH[PPI_CH_READY].EEP = (uint32_t)&NRF_RADIO->EVENTS_TXREADY;
-    NRF_PPI->CH[PPI_CH_READY].TEP = gpiote_tasks_clr;  // (0)
-
-    // Set event and task endpoints for radio FRAMESTART event (1)
-    NRF_PPI->CH[PPI_CH_FRAMESTART].EEP = (uint32_t)&NRF_RADIO->EVENTS_FRAMESTART;
-    NRF_PPI->CH[PPI_CH_FRAMESTART].TEP = gpiote_tasks_set;  // (1)
-
-    // Set event and task endpoints for radio PAYLOAD event (0)
-    NRF_PPI->CH[PPI_CH_PAYLOAD].EEP = (uint32_t)&NRF_RADIO->EVENTS_PAYLOAD;
-    NRF_PPI->CH[PPI_CH_PAYLOAD].TEP = gpiote_tasks_clr;  // (0)
-
-    // Set event and task endpoints for radio END event (1)
-    NRF_PPI->CH[PPI_CH_END].EEP = (uint32_t)&NRF_RADIO->EVENTS_END;
-    NRF_PPI->CH[PPI_CH_END].TEP = gpiote_tasks_set;  // (1)
-
-    // Set event and task endpoints for radio DISABLED event (0)
-    NRF_PPI->CH[PPI_CH_DISABLED].EEP = (uint32_t)&NRF_RADIO->EVENTS_DISABLED;
-    NRF_PPI->CH[PPI_CH_DISABLED].TEP = gpiote_tasks_clr;  // (0)
 }
 
-void _hf_timer_init(uint32_t delay_us) {
+void _hf_timer_init(uint32_t delay_us, uint32_t sine_us) {
+    // Reset shorts each function call
+    NRF_TIMER0->SHORTS = NRF_TIMER1->SHORTS = 0;
+
     db_hfclk_init();  // Start the high frequency clock if not already on
 
     NRF_TIMER0->MODE        = (TIMER_MODE_MODE_Timer << TIMER_MODE_MODE_Pos);
@@ -131,9 +176,18 @@ void _hf_timer_init(uint32_t delay_us) {
     NRF_TIMER0->PRESCALER   = (4 << TIMER_PRESCALER_PRESCALER_Pos);                                          // 16/2⁴= 1MHz
     NRF_TIMER0->CC[0]       = delay_us;                                                                      // Set the number of 1MHz ticks to wait for enabling EVENTS_COMPARE[0]
 
-    // Disable and clear the timer immediately after EVENTS_COMPARE[0] event
-    NRF_TIMER0->SHORTS = (TIMER_SHORTS_COMPARE0_CLEAR_Enabled << TIMER_SHORTS_COMPARE0_CLEAR_Pos) |
-                         (TIMER_SHORTS_COMPARE0_STOP_Enabled << TIMER_SHORTS_COMPARE0_STOP_Pos);
+    if (sine_us) {
+        uint32_t txru_us             = 40;  // 40.5 us of ramp up measured with the analyser
+        uint32_t disable_disabled_us = 6;   // 6.375 us between DISABLE and DISABLED measured with the analyser
+        NRF_TIMER0->CC[1]            = delay_us + sine_us + txru_us - disable_disabled_us;
+
+        NRF_TIMER0->SHORTS = (TIMER_SHORTS_COMPARE1_CLEAR_Enabled << TIMER_SHORTS_COMPARE1_CLEAR_Pos) |
+                             (TIMER_SHORTS_COMPARE1_STOP_Enabled << TIMER_SHORTS_COMPARE1_STOP_Pos);
+    } else {
+        // Disable and clear the timer immediately after EVENTS_COMPARE[0] event
+        NRF_TIMER0->SHORTS = (TIMER_SHORTS_COMPARE0_CLEAR_Enabled << TIMER_SHORTS_COMPARE0_CLEAR_Pos) |
+                             (TIMER_SHORTS_COMPARE0_STOP_Enabled << TIMER_SHORTS_COMPARE0_STOP_Pos);
+    }
 }
 
 //=========================== callbacks =========================================
@@ -147,10 +201,9 @@ static void _gpio_callback(void *ctx) {
 //=========================== main ==============================================
 
 int main(void) {
-    if (configs[0].delay_us) {
-        // Initialise the TIMER0 at channel 0
-        _hf_timer_init(configs[0].delay_us);
-    }
+    // Initialise the TIMER0 at channel 0
+    _hf_timer_init(configs[0].delay_us, configs[0].sine_blocker_us);
+
     // Initialize message to _radio_pdu_t struct
     memcpy(_radio_pdu.message, packet_tx, configs[0].packet_size);
 
@@ -160,8 +213,13 @@ int main(void) {
     NRF_RADIO->TXPOWER = (configs[0].tx_power << RADIO_TXPOWER_TXPOWER_Pos);                                   // Set transmission power
     db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, configs[0].packet_size + sizeof(_radio_pdu.msg_id), true);  // Always send same payload
 
-    NRF_RADIO->SHORTS = (RADIO_SHORTS_READY_START_Enabled << RADIO_SHORTS_READY_START_Pos) |
-                        (RADIO_SHORTS_END_DISABLE_Enabled << RADIO_SHORTS_END_DISABLE_Pos);
+    // Only set transmission shortcuts when sending packets
+    if (configs[0].sine_blocker_us) {
+        NRF_RADIO->SHORTS = 0;
+    } else {
+        NRF_RADIO->SHORTS = (RADIO_SHORTS_READY_START_Enabled << RADIO_SHORTS_READY_START_Pos) |
+                            (RADIO_SHORTS_END_DISABLE_Enabled << RADIO_SHORTS_END_DISABLE_Pos);
+    }
 
     // Set PPI and GPIOTE
     if (configs[0].increase_id) {

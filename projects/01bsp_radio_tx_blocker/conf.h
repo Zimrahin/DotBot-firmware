@@ -20,14 +20,14 @@ static const uint8_t packet_tx[] = {
 };  // 120 Bytes long
 
 typedef struct {
-    db_radio_mode_t radio_mode;    // DB_RADIO_BLE_1MBit, DB_RADIO_IEEE802154_250Kbit
-    uint8_t         tx_power;      // RADIO_TXPOWER_TXPOWER_XdBm: X = {PosxdBm, 0dBm, NegxdBm}
-    uint8_t         increase_id;   // (0) Don't increase (Blocker), (1) Increase (Main transmitter)
-    uint32_t        delay_us;      // Wait delay_us before sending
-    uint8_t         frequency;     // (2400 + frequency) MHz
-    uint8_t         sine_blocker;  // (0) Normal operation, (1) Use sinusoidal blocker
-    uint8_t         packet_size;   // Amount of bytes of packet_tx to send
-    const uint8_t  *packet_tx;     // Pointer to a predefined constant packet
+    db_radio_mode_t radio_mode;       // DB_RADIO_BLE_1MBit, DB_RADIO_IEEE802154_250Kbit
+    uint8_t         tx_power;         // RADIO_TXPOWER_TXPOWER_XdBm: X = {PosxdBm, 0dBm, NegxdBm}
+    uint8_t         increase_id;      // (0) Don't increase (Blocker), (1) Increase (Main transmitter)
+    uint32_t        delay_us;         // Wait delay_us before sending
+    uint8_t         frequency;        // (2400 + frequency) MHz
+    uint32_t        sine_blocker_us;  // (0) Normal operation, (else) Use a sinusoidal blocker for the specified amount of us
+    uint8_t         packet_size;      // Amount of bytes of packet_tx to send
+    const uint8_t  *packet_tx;        // Pointer to a predefined constant packet
 } radio_config_t;
 
 static const radio_config_t configs[] = {
