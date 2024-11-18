@@ -2,7 +2,7 @@
  * @file
  * @ingroup samples_bsp
  *
- * @brief This example shows how to transmit synched packets over the radio
+ * @brief This example shows how to transmit synced packets over the radio
  *
  * @author Diego Badillo-San-Juan <diego.badillo-san-juan@inria.fr>
  *
@@ -55,7 +55,7 @@ static _radio_pdu_t _radio_pdu = { 0 };
 //=========================== functions =========================================
 
 void _gpiote_setup(const gpio_t *gpio_in, const gpio_t *gpio_out) {
-    // Configure input GPIO pin for enabling a synched transmission to a master clock
+    // Configure input GPIO pin for enabling a synced transmission to a master clock
     NRF_GPIOTE->CONFIG[GPIOTE_CH_IN] = (GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) |
                                        (gpio_in->pin << GPIOTE_CONFIG_PSEL_Pos) |
                                        (gpio_in->port << GPIOTE_CONFIG_PORT_Pos) |
