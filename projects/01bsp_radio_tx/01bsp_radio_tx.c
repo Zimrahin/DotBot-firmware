@@ -196,8 +196,10 @@ void _hf_timer_init(uint32_t delay_us, uint32_t tone_us) {
 
 static void _gpio_callback(void *ctx) {
     (void)ctx;
-    _radio_pdu.msg_id += 1;
-    db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, sizeof(_radio_pdu.msg_id), false);
+    if (configs[0].increase_id) {
+        _radio_pdu.msg_id += 1;
+        db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, sizeof(_radio_pdu.msg_id), false);
+    }
 }
 
 //=========================== main ==============================================
