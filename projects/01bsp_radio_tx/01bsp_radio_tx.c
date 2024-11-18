@@ -57,6 +57,24 @@ static _radio_pdu_t _radio_pdu = { 0 };
 
 static size_t current_config_state = 0;
 
+//=========================== prototypes =========================================
+
+void        _gpiote_setup(const gpio_t *gpio_in, const gpio_t *gpio_out);
+void        _ppi_setup(void);
+void        _hf_timer_init(uint32_t delay_us, uint32_t tone_us);
+void        init_configurations(void);
+static void _gpio_callback(void *ctx);
+
+//=========================== main ==============================================
+
+int main(void) {
+    init_configurations();
+
+    while (1) {
+        __WFI();  // Wait for interruption
+    }
+}
+
 //=========================== functions =========================================
 
 void _gpiote_setup(const gpio_t *gpio_in, const gpio_t *gpio_out) {
@@ -195,20 +213,8 @@ void _hf_timer_init(uint32_t delay_us, uint32_t tone_us) {
     }
 }
 
-//=========================== callbacks =========================================
-
-static void _gpio_callback(void *ctx) {
-    (void)ctx;
-    if (configs[current_config_state].increase_id) {
-        _radio_pdu.msg_id += 1;
-        db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, sizeof(_radio_pdu.msg_id), false);
-    }
-}
-
-//=========================== main ==============================================
-
-int main(void) {
-    // Initialise the TIMER0 at channel 0
+void init_configurations(void) {
+    // Initialise the TIMER0
     _hf_timer_init(configs[current_config_state].delay_us, configs[current_config_state].tone_blocker_us);
 
     // Initialize message to _radio_pdu_t struct
@@ -232,10 +238,17 @@ int main(void) {
     if (configs[current_config_state].increase_id) {
         db_gpio_init_irq(&_pin_square_in, DB_GPIO_IN, GPIOTE_CONFIG_POLARITY_Toggle, _gpio_callback, NULL);
     }
+
     _gpiote_setup(&_pin_square_in, &_pin_radio_events_out);
     _ppi_setup();
+}
 
-    while (1) {
-        __WFI();  // Wait for interruption
+//=========================== callbacks =========================================
+
+static void _gpio_callback(void *ctx) {
+    (void)ctx;
+    if (configs[current_config_state].increase_id) {
+        _radio_pdu.msg_id += 1;
+        db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, sizeof(_radio_pdu.msg_id), false);
     }
 }
