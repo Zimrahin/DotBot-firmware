@@ -25,7 +25,7 @@ typedef struct {
     uint8_t         increase_id;      // (0) Don't increase (Blocker), (1) Increase (Main transmitter)
     uint32_t        delay_us;         // Wait delay_us before sending
     uint8_t         frequency;        // (2400 + frequency) MHz
-    uint32_t        sine_blocker_us;  // (0) Normal operation, (else) Use a sinusoidal blocker for the specified amount of us
+    uint32_t        tone_blocker_us;  // (0) Normal operation, (else) Use a sinusoidal blocker for the specified amount of us
     uint8_t         packet_size;      // Amount of bytes of packet_tx to send
     const uint8_t  *packet_tx;        // Pointer to a predefined constant packet
 } radio_config_t;

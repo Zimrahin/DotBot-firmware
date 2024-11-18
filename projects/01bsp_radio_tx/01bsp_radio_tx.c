@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <nrf52840_bitfields.h>
+#include <nrf52840.h>
 
 // Include BSP packages
 #include "board.h"
@@ -23,6 +24,7 @@
 #include "radio.h"
 #include "timer_hf.h"
 #include "clock.h"
+#include "conf.h"
 
 //=========================== defines ===========================================
 
@@ -74,7 +76,7 @@ void _ppi_setup(void) {
     NRF_PPI->CHENSET = 0;
 
     // Enable PPI channels
-    if (configs[0].sine_blocker_us) {
+    if (configs[0].tone_blocker_us) {
         NRF_PPI->CHENSET = (1 << PPI_CH_TXENABLE_SYNCH) |
                            (1 << PPI_CH_READY) |
                            (1 << PPI_CH_DISABLE) |
@@ -97,7 +99,7 @@ void _ppi_setup(void) {
     uint32_t gpiote_tasks_set = (uint32_t)&NRF_GPIOTE->TASKS_SET[GPIOTE_CH_OUT];  // Set to (1)
     uint32_t gpiote_tasks_clr = (uint32_t)&NRF_GPIOTE->TASKS_CLR[GPIOTE_CH_OUT];  // Set to (0)
 
-    if (configs[0].sine_blocker_us) {
+    if (configs[0].tone_blocker_us) {
         // Set event and task endpoints to start timer
         NRF_PPI->CH[PPI_CH_TIMER_START].EEP = (uint32_t)&NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_IN];
         NRF_PPI->CH[PPI_CH_TIMER_START].TEP = (uint32_t)&NRF_TIMER0->TASKS_START;
@@ -164,7 +166,7 @@ void _ppi_setup(void) {
     }
 }
 
-void _hf_timer_init(uint32_t delay_us, uint32_t sine_us) {
+void _hf_timer_init(uint32_t delay_us, uint32_t tone_us) {
     // Reset shorts each function call
     NRF_TIMER0->SHORTS = NRF_TIMER1->SHORTS = 0;
 
@@ -176,10 +178,10 @@ void _hf_timer_init(uint32_t delay_us, uint32_t sine_us) {
     NRF_TIMER0->PRESCALER   = (4 << TIMER_PRESCALER_PRESCALER_Pos);                                          // 16/2⁴= 1MHz
     NRF_TIMER0->CC[0]       = delay_us;                                                                      // Set the number of 1MHz ticks to wait for enabling EVENTS_COMPARE[0]
 
-    if (sine_us) {
+    if (tone_us) {
         uint32_t txru_us             = 40;  // 40.5 us of ramp up measured with the analyser
         uint32_t disable_disabled_us = 6;   // 6.375 us between DISABLE and DISABLED measured with the analyser
-        NRF_TIMER0->CC[1]            = delay_us + sine_us + txru_us - disable_disabled_us;
+        NRF_TIMER0->CC[1]            = delay_us + tone_us + txru_us - disable_disabled_us;
 
         NRF_TIMER0->SHORTS = (TIMER_SHORTS_COMPARE1_CLEAR_Enabled << TIMER_SHORTS_COMPARE1_CLEAR_Pos) |
                              (TIMER_SHORTS_COMPARE1_STOP_Enabled << TIMER_SHORTS_COMPARE1_STOP_Pos);
@@ -202,7 +204,7 @@ static void _gpio_callback(void *ctx) {
 
 int main(void) {
     // Initialise the TIMER0 at channel 0
-    _hf_timer_init(configs[0].delay_us, configs[0].sine_blocker_us);
+    _hf_timer_init(configs[0].delay_us, configs[0].tone_blocker_us);
 
     // Initialize message to _radio_pdu_t struct
     memcpy(_radio_pdu.message, packet_tx, configs[0].packet_size);
@@ -214,7 +216,7 @@ int main(void) {
     db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, configs[0].packet_size + sizeof(_radio_pdu.msg_id), true);  // Always send same payload
 
     // Only set transmission shortcuts when sending packets
-    if (configs[0].sine_blocker_us) {
+    if (configs[0].tone_blocker_us) {
         NRF_RADIO->SHORTS = 0;
     } else {
         NRF_RADIO->SHORTS = (RADIO_SHORTS_READY_START_Enabled << RADIO_SHORTS_READY_START_Pos) |
