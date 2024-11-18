@@ -24,7 +24,6 @@
 #include "radio.h"
 #include "timer_hf.h"
 #include "clock.h"
-#include "conf.h"
 
 //=========================== defines ===========================================
 
