@@ -41,6 +41,8 @@
 #define GPIOTE_CH_OUT (1)  // GPIOTE channel for RADIO TX visualization
 #define GPIOTE_CH_IN  (2)  // GPIOTE channel for master clock TX synchronisation
 
+#define NUM_CONFIGS (sizeof(configs) / sizeof(configs[0]))
+
 typedef struct __attribute__((packed)) {
     uint32_t msg_id;                     // Message ID (starts at 0 and increments by 1 for each message)
     uint8_t  message[MAX_PAYLOAD_SIZE];  // Actual message
@@ -52,6 +54,8 @@ static const gpio_t _pin_square_in        = { .port = DB_LED1_PORT, .pin = DB_LE
 static const gpio_t _pin_radio_events_out = { .port = DB_LED2_PORT, .pin = DB_LED2_PIN };  // Show radio events in digital analyser
 
 static _radio_pdu_t _radio_pdu = { 0 };
+
+static size_t current_config_state = 0;
 
 //=========================== functions =========================================
 
@@ -75,7 +79,7 @@ void _ppi_setup(void) {
     NRF_PPI->CHENSET = 0;
 
     // Enable PPI channels
-    if (configs[0].tone_blocker_us) {
+    if (configs[current_config_state].tone_blocker_us) {
         NRF_PPI->CHENSET = (1 << PPI_CH_TXENABLE_SYNCH) |
                            (1 << PPI_CH_READY) |
                            (1 << PPI_CH_DISABLE) |
@@ -89,7 +93,7 @@ void _ppi_setup(void) {
                            (1 << PPI_CH_END) |
                            (1 << PPI_CH_DISABLED);
 
-        if (configs[0].delay_us) {
+        if (configs[current_config_state].delay_us) {
             NRF_PPI->CHENSET |= (1 << PPI_CH_TIMER_START);
         }
     }
@@ -98,12 +102,12 @@ void _ppi_setup(void) {
     uint32_t gpiote_tasks_set = (uint32_t)&NRF_GPIOTE->TASKS_SET[GPIOTE_CH_OUT];  // Set to (1)
     uint32_t gpiote_tasks_clr = (uint32_t)&NRF_GPIOTE->TASKS_CLR[GPIOTE_CH_OUT];  // Set to (0)
 
-    if (configs[0].tone_blocker_us) {
+    if (configs[current_config_state].tone_blocker_us) {
         // Set event and task endpoints to start timer
         NRF_PPI->CH[PPI_CH_TIMER_START].EEP = (uint32_t)&NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_IN];
         NRF_PPI->CH[PPI_CH_TIMER_START].TEP = (uint32_t)&NRF_TIMER0->TASKS_START;
 
-        if (configs[0].delay_us) {
+        if (configs[current_config_state].delay_us) {
             // Start transmission after a delay
             NRF_PPI->CH[PPI_CH_TXENABLE_SYNCH].EEP = (uint32_t)&NRF_TIMER0->EVENTS_COMPARE[0];
         } else {
@@ -127,7 +131,7 @@ void _ppi_setup(void) {
         NRF_PPI->CH[PPI_CH_DISABLED].TEP = gpiote_tasks_clr;  // (0)
 
     } else {
-        if (configs[0].delay_us) {
+        if (configs[current_config_state].delay_us) {
             // Set event and task endpoints to start timer
             NRF_PPI->CH[PPI_CH_TIMER_START].EEP = (uint32_t)&NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_IN];
             NRF_PPI->CH[PPI_CH_TIMER_START].TEP = (uint32_t)&NRF_TIMER0->TASKS_START;
@@ -195,7 +199,7 @@ void _hf_timer_init(uint32_t delay_us, uint32_t tone_us) {
 
 static void _gpio_callback(void *ctx) {
     (void)ctx;
-    if (configs[0].increase_id) {
+    if (configs[current_config_state].increase_id) {
         _radio_pdu.msg_id += 1;
         db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, sizeof(_radio_pdu.msg_id), false);
     }
@@ -205,19 +209,19 @@ static void _gpio_callback(void *ctx) {
 
 int main(void) {
     // Initialise the TIMER0 at channel 0
-    _hf_timer_init(configs[0].delay_us, configs[0].tone_blocker_us);
+    _hf_timer_init(configs[current_config_state].delay_us, configs[current_config_state].tone_blocker_us);
 
     // Initialize message to _radio_pdu_t struct
-    memcpy(_radio_pdu.message, packet_tx, configs[0].packet_size);
+    memcpy(_radio_pdu.message, packet_tx, configs[current_config_state].packet_size);
 
     // Configure Radio
-    db_radio_init(NULL, configs[0].radio_mode);
-    db_radio_set_frequency(configs[0].frequency);                                                              // Set transmission frequency
-    NRF_RADIO->TXPOWER = (configs[0].tx_power << RADIO_TXPOWER_TXPOWER_Pos);                                   // Set transmission power
-    db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, configs[0].packet_size + sizeof(_radio_pdu.msg_id), true);  // Always send same payload
+    db_radio_init(NULL, configs[current_config_state].radio_mode);
+    db_radio_set_frequency(configs[current_config_state].frequency);                                                              // Set transmission frequency
+    NRF_RADIO->TXPOWER = (configs[current_config_state].tx_power << RADIO_TXPOWER_TXPOWER_Pos);                                   // Set transmission power
+    db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, configs[current_config_state].packet_size + sizeof(_radio_pdu.msg_id), true);  // Always send same payload
 
     // Only set transmission shortcuts when sending packets
-    if (configs[0].tone_blocker_us) {
+    if (configs[current_config_state].tone_blocker_us) {
         NRF_RADIO->SHORTS = 0;
     } else {
         NRF_RADIO->SHORTS = (RADIO_SHORTS_READY_START_Enabled << RADIO_SHORTS_READY_START_Pos) |
@@ -225,7 +229,7 @@ int main(void) {
     }
 
     // Set PPI and GPIOTE
-    if (configs[0].increase_id) {
+    if (configs[current_config_state].increase_id) {
         db_gpio_init_irq(&_pin_square_in, DB_GPIO_IN, GPIOTE_CONFIG_POLARITY_Toggle, _gpio_callback, NULL);
     }
     _gpiote_setup(&_pin_square_in, &_pin_radio_events_out);
