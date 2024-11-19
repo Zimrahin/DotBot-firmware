@@ -14,6 +14,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <nrf52840_bitfields.h>
+#include <nrf52840.h>
 
 // Include BSP packages
 #include "board.h"
@@ -22,58 +24,91 @@
 #include "timer_hf.h"
 #include "clock.h"
 
-#define PPI_CH_MASTER_CLOCK  (7)
-#define GPIOTE_CH_OUT_MASTER (3)  // GPIOTE channel for master clock synthesis
+#define PPI_CH_MASTER_CLOCK  (0)
+#define PPI_CH_CONFIG_TOGGLE (1)
+#define PPI_CH_TASK_COUNT    (2)
 
-//=========================== variables =========================================
+#define GPIOTE_CH_OUT_MASTER (0)  // GPIOTE channel for master clock synthesis
+#define GPIOTE_CH_OUT_CONFIG (1)  // GPIOTE channel for toggling the config pin
 
-static const gpio_t _pin_square_out = { .port = DB_LED1_PORT, .pin = DB_LED1_PIN };
+static const gpio_t _pin_out_square       = { .port = DB_LED1_PORT, .pin = DB_LED1_PIN };
+static const gpio_t _pin_out_config_state = { .port = DB_LED3_PORT, .pin = DB_LED3_PIN };
 
 //=========================== functions =========================================
 
-void _gpiote_setup(const gpio_t *gpio_out) {
-    // Configure output GPIO for master clock
-    NRF_GPIOTE->CONFIG[GPIOTE_CH_OUT_MASTER] = (GPIOTE_CONFIG_MODE_Task << GPIOTE_CONFIG_MODE_Pos) |
-                                               (gpio_out->pin << GPIOTE_CONFIG_PSEL_Pos) |
-                                               (gpio_out->port << GPIOTE_CONFIG_PORT_Pos) |
-                                               (GPIOTE_CONFIG_POLARITY_Toggle << GPIOTE_CONFIG_POLARITY_Pos) |
-                                               (GPIOTE_CONFIG_OUTINIT_Low << GPIOTE_CONFIG_OUTINIT_Pos);
+void _gpiote_setup(const gpio_t *gpio_out, uint8_t gpiote_channel) {
+    NRF_GPIOTE->CONFIG[gpiote_channel] = (GPIOTE_CONFIG_MODE_Task << GPIOTE_CONFIG_MODE_Pos) |
+                                         (gpio_out->pin << GPIOTE_CONFIG_PSEL_Pos) |
+                                         (gpio_out->port << GPIOTE_CONFIG_PORT_Pos) |
+                                         (GPIOTE_CONFIG_POLARITY_Toggle << GPIOTE_CONFIG_POLARITY_Pos) |
+                                         (GPIOTE_CONFIG_OUTINIT_Low << GPIOTE_CONFIG_OUTINIT_Pos);
 }
 
 void _ppi_setup(void) {
     // Enable PPI channels
-    NRF_PPI->CHENSET = (1 << PPI_CH_MASTER_CLOCK);
+    NRF_PPI->CHENSET = (1 << PPI_CH_MASTER_CLOCK) |
+                       (1 << PPI_CH_CONFIG_TOGGLE) |
+                       (1 << PPI_CH_TASK_COUNT);
 
-    // Define GPIOTE tasks for toggling master clock
-    uint32_t gpiote_tasks_toggle = (uint32_t)&NRF_GPIOTE->TASKS_OUT[GPIOTE_CH_OUT_MASTER];  // Toggle
+    // Define GPIOTE tasks
+    uint32_t gpiote_tasks_toggle_master = (uint32_t)&NRF_GPIOTE->TASKS_OUT[GPIOTE_CH_OUT_MASTER];
+    uint32_t gpiote_tasks_toggle_config = (uint32_t)&NRF_GPIOTE->TASKS_OUT[GPIOTE_CH_OUT_CONFIG];
 
-    // Set event and task endpoints to start timer
-    NRF_PPI->CH[PPI_CH_MASTER_CLOCK].EEP   = (uint32_t)&NRF_TIMER1->EVENTS_COMPARE[1];
-    NRF_PPI->CH[PPI_CH_MASTER_CLOCK].TEP   = (uint32_t)&NRF_TIMER1->TASKS_START;
-    NRF_PPI->FORK[PPI_CH_MASTER_CLOCK].TEP = gpiote_tasks_toggle;  // (1)
+    // Master clock toggling PPI channel
+    NRF_PPI->CH[PPI_CH_MASTER_CLOCK].EEP = (uint32_t)&NRF_TIMER1->EVENTS_COMPARE[0];
+    NRF_PPI->CH[PPI_CH_MASTER_CLOCK].TEP = gpiote_tasks_toggle_master;
+
+    // Config pin toggling PPI channel (triggered by TIMER2 match)
+    NRF_PPI->CH[PPI_CH_CONFIG_TOGGLE].EEP = (uint32_t)&NRF_TIMER2->EVENTS_COMPARE[0];
+    NRF_PPI->CH[PPI_CH_CONFIG_TOGGLE].TEP = gpiote_tasks_toggle_config;
+
+    // Link master clock toggles to TIMER2 count
+    NRF_PPI->CH[PPI_CH_TASK_COUNT].EEP = (uint32_t)&NRF_TIMER1->EVENTS_COMPARE[0];
+    NRF_PPI->CH[PPI_CH_TASK_COUNT].TEP = (uint32_t)&NRF_TIMER2->TASKS_COUNT;
 }
 
-void _hf_timer_init(uint32_t ms) {
-    db_hfclk_init();  // Start the high frequency clock if not already on
+void _hf_timer1_init(uint32_t ms) {
+    db_hfclk_init();  // Start the high-frequency clock
 
-    NRF_TIMER1->MODE        = (TIMER_MODE_MODE_Timer << TIMER_MODE_MODE_Pos);
-    NRF_TIMER1->TASKS_CLEAR = (TIMER_TASKS_CLEAR_TASKS_CLEAR_Trigger << TIMER_TASKS_CLEAR_TASKS_CLEAR_Pos);  // Clear timer
-    NRF_TIMER1->BITMODE     = (TIMER_BITMODE_BITMODE_32Bit << TIMER_BITMODE_BITMODE_Pos);                    // 32 bits
-    NRF_TIMER1->PRESCALER   = (4 << TIMER_PRESCALER_PRESCALER_Pos);                                          // 16/2⁴= 1MHz
-    NRF_TIMER1->CC[1]       = 1000 * ms;                                                                     // Set the master clock period
+    // Timer 1: Controls master clock toggles
+    NRF_TIMER1->MODE        = TIMER_MODE_MODE_Timer;
+    NRF_TIMER1->TASKS_CLEAR = TIMER_TASKS_CLEAR_TASKS_CLEAR_Trigger;
+    NRF_TIMER1->BITMODE     = TIMER_BITMODE_BITMODE_32Bit;
+    NRF_TIMER1->PRESCALER   = 4;          // 1 MHz clock
+    NRF_TIMER1->CC[0]       = 1000 * ms;  // Master clock period
 
-    // Disable and clear the timer immediately after EVENTS_COMPARE[0] event
-    NRF_TIMER1->SHORTS = (TIMER_SHORTS_COMPARE1_CLEAR_Enabled << TIMER_SHORTS_COMPARE1_CLEAR_Pos) |
-                         (TIMER_SHORTS_COMPARE1_STOP_Enabled << TIMER_SHORTS_COMPARE1_STOP_Pos);
+    // Shortcuts: Clear timer at CC[0]
+    NRF_TIMER1->SHORTS = TIMER_SHORTS_COMPARE0_CLEAR_Msk;
 
-    NRF_TIMER1->TASKS_START = (TIMER_TASKS_START_TASKS_START_Trigger << TIMER_TASKS_START_TASKS_START_Pos);
+    NRF_TIMER1->TASKS_START = TIMER_TASKS_START_TASKS_START_Trigger;
+}
+
+void _hf_timer2_init(uint32_t count) {
+    // Timer 2: Counts master clock toggles
+    NRF_TIMER2->MODE        = TIMER_MODE_MODE_Counter;
+    NRF_TIMER2->TASKS_CLEAR = TIMER_TASKS_CLEAR_TASKS_CLEAR_Trigger;
+    NRF_TIMER2->BITMODE     = TIMER_BITMODE_BITMODE_32Bit;
+    NRF_TIMER2->CC[0]       = count;
+
+    // Shortcuts: Reset counter at CC[0]
+    NRF_TIMER2->SHORTS = TIMER_SHORTS_COMPARE0_CLEAR_Msk;
+
+    NRF_TIMER2->TASKS_START = TIMER_TASKS_START_TASKS_START_Trigger;
 }
 
 //=========================== main ==============================================
 int main(void) {
-    // Initialise the TIMER1 at channel 1
-    _hf_timer_init(DELAY_ms);
-    _gpiote_setup(&_pin_square_out);
+    // Initialise TIMER1 for master clock
+    _hf_timer1_init(DELAY_ms);
+
+    // Initialise TIMER2 as a counter for toggles
+    _hf_timer2_init(MAX_TX_PER_CONFIG);
+
+    // Set up GPIOTE channels
+    _gpiote_setup(&_pin_out_square, GPIOTE_CH_OUT_MASTER);
+    _gpiote_setup(&_pin_out_config_state, GPIOTE_CH_OUT_CONFIG);
+
+    // Set up PPI channels
     _ppi_setup();
 
     while (1) {
