@@ -32,4 +32,6 @@ typedef struct {
 
 static const radio_config_t configs[] = {
     { DB_RADIO_BLE_1MBit, 25, RADIO_TXPOWER_TXPOWER_0dBm, 0, 0, 1, 120, packet_tx },
+    { DB_RADIO_BLE_1MBit, 25, RADIO_TXPOWER_TXPOWER_0dBm, 0, 0, 1, 20, packet_tx },
+    { DB_RADIO_BLE_1MBit, 25, RADIO_TXPOWER_TXPOWER_0dBm, 0, 0, 1, 120, packet_tx },
 };
