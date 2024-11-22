@@ -59,10 +59,11 @@ static size_t current_config_state = 0;
 
 //=========================== prototypes =========================================
 
-void        _gpiote_setup(const gpio_t *gpio_in, const gpio_t *gpio_out);
-void        _ppi_setup(void);
-void        _hf_timer_init(uint32_t delay_us, uint32_t tone_us);
-void        init_configurations(void);
+void _gpiote_setup(const gpio_t *gpio_in, const gpio_t *gpio_out);
+void _ppi_setup(void);
+void _hf_timer_init(uint32_t delay_us, uint32_t tone_us);
+void _init_configurations(void);
+
 static void _gpio_callback(void *ctx);
 
 //=========================== main ==============================================
