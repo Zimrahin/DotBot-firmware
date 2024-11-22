@@ -95,7 +95,7 @@ void _gpiote_setup(const gpio_t *gpio_in, const gpio_t *gpio_out) {
 
 void _ppi_setup(void) {
     // Reset enabled PPI channels each function call
-    NRF_PPI->CHENSET = 0;
+    NRF_PPI->CHEN = 0;
 
     // Enable PPI channels
     if (configs[current_config_state].tone_blocker_us) {
