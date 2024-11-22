@@ -32,8 +32,8 @@
 #define GPIOTE_CH_OUT_MASTER (0)  // GPIOTE channel for master clock synthesis
 #define GPIOTE_CH_OUT_CONFIG (1)  // GPIOTE channel for toggling the config pin
 
-static const gpio_t _pin_out_square       = { .port = DB_LED1_PORT, .pin = DB_LED1_PIN };
-static const gpio_t _pin_out_config_state = { .port = DB_LED3_PORT, .pin = DB_LED3_PIN };
+static const gpio_t _pin_out_square       = { .port = 1, .pin = 11 };
+static const gpio_t _pin_out_config_state = { .port = 1, .pin = 10 };
 
 //=========================== functions =========================================
 
@@ -125,6 +125,10 @@ void _hf_timer0_init(uint32_t msCC0, uint32_t msCC1) {
 //=========================== main ==============================================
 
 int main(void) {
+    // Set GPIO pins as output
+    db_gpio_init(&_pin_out_square, DB_GPIO_OUT);
+    db_gpio_init(&_pin_out_config_state, DB_GPIO_OUT);
+
     // Set up GPIOTE channels
     _gpiote_setup(&_pin_out_square, GPIOTE_CH_OUT_MASTER, GPIOTE_CONFIG_OUTINIT_Low);
     _gpiote_setup(&_pin_out_config_state, GPIOTE_CH_OUT_CONFIG, GPIOTE_CONFIG_OUTINIT_Low);
