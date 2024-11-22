@@ -50,8 +50,8 @@ typedef struct __attribute__((packed)) {
 
 //=========================== variables =========================================
 
-static const gpio_t _pin_square_in        = { .port = DB_LED1_PORT, .pin = DB_LED1_PIN };  // Square signal from master
-static const gpio_t _pin_radio_events_out = { .port = DB_LED2_PORT, .pin = DB_LED2_PIN };  // Show radio events in digital analyser
+static const gpio_t _pin_in_square        = { .port = DB_LED1_PORT, .pin = DB_LED1_PIN };  // Square signal from master
+static const gpio_t _pin_out_radio_events = { .port = DB_LED2_PORT, .pin = DB_LED2_PIN };  // Show radio events in digital analyser
 
 static _radio_pdu_t _radio_pdu = { 0 };
 
@@ -237,10 +237,10 @@ void init_configurations(void) {
 
     // Set PPI and GPIOTE
     if (configs[current_config_state].increase_id) {
-        db_gpio_init_irq(&_pin_square_in, DB_GPIO_IN, GPIOTE_CONFIG_POLARITY_Toggle, _gpio_callback, NULL);
+        db_gpio_init_irq(&_pin_in_square, DB_GPIO_IN, GPIOTE_CONFIG_POLARITY_Toggle, _gpio_callback, NULL);
     }
 
-    _gpiote_setup(&_pin_square_in, &_pin_radio_events_out);
+    _gpiote_setup(&_pin_in_square, &_pin_out_radio_events);
     _ppi_setup();
 }
 
