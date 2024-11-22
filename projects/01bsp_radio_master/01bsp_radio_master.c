@@ -32,8 +32,8 @@
 #define GPIOTE_CH_OUT_MASTER (0)  // GPIOTE channel for master clock synthesis
 #define GPIOTE_CH_OUT_CONFIG (1)  // GPIOTE channel for toggling the config pin
 
-static const gpio_t _pin_out_square       = { .port = 1, .pin = 11 };
 static const gpio_t _pin_out_config_state = { .port = 1, .pin = 10 };
+static const gpio_t _pin_out_square       = { .port = 1, .pin = 11 };
 
 //=========================== functions =========================================
 

@@ -50,8 +50,9 @@ typedef struct __attribute__((packed)) {
 
 //=========================== variables =========================================
 
-static const gpio_t _pin_in_square        = { .port = DB_LED1_PORT, .pin = DB_LED1_PIN };  // Square signal from master
-static const gpio_t _pin_out_radio_events = { .port = DB_LED2_PORT, .pin = DB_LED2_PIN };  // Show radio events in digital analyser
+static const gpio_t _pin_in_config_state  = { .port = 1, .pin = 10 };  // Toggling this pin changes the state
+static const gpio_t _pin_in_square        = { .port = 1, .pin = 11 };  // Square signal from master
+static const gpio_t _pin_out_radio_events = { .port = 1, .pin = 12 };  // Show radio events in digital analyser
 
 static _radio_pdu_t _radio_pdu = { 0 };
 
@@ -65,11 +66,17 @@ void _hf_timer_init(uint32_t delay_us, uint32_t tone_us);
 void _init_configurations(void);
 
 static void _gpio_callback(void *ctx);
+static void _gpio_callback_change_state(void *ctx);
 
 //=========================== main ==============================================
 
 int main(void) {
-    init_configurations();
+    // Enable interrupts for changing configuration state
+    db_gpio_init(&_pin_in_config_state, DB_GPIO_IN_PD);
+    db_gpio_init_irq(&_pin_in_config_state, DB_GPIO_IN_PD, GPIOTE_CONFIG_POLARITY_LoToHi, _gpio_callback_change_state, NULL);
+
+    // Initialise state configurations
+    _init_configurations();
 
     while (1) {
         __WFI();  // Wait for interruption
@@ -214,7 +221,7 @@ void _hf_timer_init(uint32_t delay_us, uint32_t tone_us) {
     }
 }
 
-void init_configurations(void) {
+void _init_configurations(void) {
     // Initialise the TIMER0
     _hf_timer_init(configs[current_config_state].delay_us, configs[current_config_state].tone_blocker_us);
 
@@ -251,5 +258,19 @@ static void _gpio_callback(void *ctx) {
     if (configs[current_config_state].increase_id) {
         _radio_pdu.msg_id += 1;
         db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, sizeof(_radio_pdu.msg_id), false);
+    }
+}
+
+static void _gpio_callback_change_state(void *ctx) {
+    (void)ctx;
+    current_config_state += 1;
+    if (current_config_state < NUM_CONFIGS) {
+        // Reset ID
+        _radio_pdu.msg_id = 0;
+        _init_configurations();
+    } else {
+        // Stop transmitting
+        NRF_CLOCK->TASKS_HFCLKSTOP = 1;  // Stop HF crystal oscillator
+        NRF_PPI->CHEN              = 0;  // Disable PPI channels
     }
 }
