@@ -38,8 +38,8 @@
 #define PPI_CH_TIMER_START    (6)  // PPI channel destined to start the timer
 #define PPI_CH_DISABLE        (7)  // PPI channel destined to radio DISABLE task debugging
 
-#define GPIOTE_CH_OUT (1)  // GPIOTE channel for RADIO TX visualization
-#define GPIOTE_CH_IN  (2)  // GPIOTE channel for master clock TX synchronisation
+#define GPIOTE_CH_OUT (2)  // GPIOTE channel for RADIO TX visualization
+#define GPIOTE_CH_IN  (3)  // GPIOTE channel for master clock TX synchronisation
 
 #define NUM_CONFIGS (sizeof(configs) / sizeof(configs[0]))
 
