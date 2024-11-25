@@ -60,11 +60,12 @@ class SerialReader:
 
             if payload:
                 # Handle payload variables
-                length = int.from_bytes(payload[-5].to_bytes(1, "little"), "little", signed=False)
-                rssi = int.from_bytes(payload[-4].to_bytes(1, "little"), "little", signed=True)
-                crc = int.from_bytes(payload[-3].to_bytes(1, "little"), "little", signed=True)
-                rx_freq = int.from_bytes(payload[-2].to_bytes(1, "little"), "little", signed=True) + 2400  # MHz
-                radio_mode_index = int.from_bytes(payload[-1].to_bytes(1, "little"), "little", signed=True)
+                length = int.from_bytes(payload[-9].to_bytes(1, "little"), "little", signed=False)
+                rssi = int.from_bytes(payload[-8].to_bytes(1, "little"), "little", signed=True)
+                crc = int.from_bytes(payload[-7].to_bytes(1, "little"), "little", signed=True)
+                rx_freq = int.from_bytes(payload[-6].to_bytes(1, "little"), "little", signed=True) + 2400  # MHz
+                radio_mode_index = int.from_bytes(payload[-5].to_bytes(1, "little"), "little", signed=True)
+                config_state = int.from_bytes(payload[-4:], "little", signed=False)
                 message = payload[4:length]  # The size of msg_id is 4 bytes and it is included in the message
                 msg_id = int.from_bytes(payload[:4], "little", signed=False)
 
@@ -83,6 +84,7 @@ class SerialReader:
                     "length": length,  # length includes the 4 bytes used by the identifier
                     "rssi": rssi,
                     "crc": crc,
+                    "state": config_state,
                 }
 
                 # Print or/and store payload
@@ -114,7 +116,7 @@ class SerialReader:
 
         # Create a box with payload details
         crc_text = "OK" if payload_data['crc'] else "ERROR"
-        info_text = f"ID: {payload_data['id']}\nLength: {payload_data['length']} B\nRSSI: {payload_data['rssi']} dBm\nCRC: {crc_text}"
+        info_text = f"ID: {payload_data['id']}\nLength: {payload_data['length']} B\nRSSI: {payload_data['rssi']} dBm\nCRC: {crc_text}\nCurrent state: {payload_data['state']}"
         plt.gca().text(1.05, 0.55, info_text, fontsize=10, ha="left", va="top", transform=plt.gca().transAxes, bbox=dict(facecolor="white", alpha=0.5))
 
         # Show grid and update the plot
