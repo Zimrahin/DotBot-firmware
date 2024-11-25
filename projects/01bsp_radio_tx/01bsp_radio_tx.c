@@ -56,7 +56,7 @@ static const gpio_t _pin_out_radio_events = { .port = 1, .pin = 12 };  // Show r
 
 static _radio_pdu_t _radio_pdu = { 0 };
 
-static size_t current_config_state = 0;
+static uint32_t current_config_state = 0;
 
 //=========================== prototypes =========================================
 
