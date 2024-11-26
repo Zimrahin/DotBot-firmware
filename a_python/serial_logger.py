@@ -9,12 +9,9 @@ from hdlc import HDLCHandler, HDLCState
 from config import (
     DEFAULT_USB_PORT,
     DEFAULT_BAUDRATE,
-    FREQ_INTERFERER,
-    TX_POWER_INTERFERER,
-    TX_POWER_LINK,
-    INTERFERER_MODE,
     tx_power_values,
     radio_modes,
+    configs
 )
 
 plt.ion()
@@ -64,44 +61,52 @@ class SerialReader:
                 rssi = int.from_bytes(payload[-8].to_bytes(1, "little"), "little", signed=True)
                 crc = int.from_bytes(payload[-7].to_bytes(1, "little"), "little", signed=True)
                 rx_freq = int.from_bytes(payload[-6].to_bytes(1, "little"), "little", signed=True) + 2400  # MHz
-                radio_mode_index = int.from_bytes(payload[-5].to_bytes(1, "little"), "little", signed=True)
-                config_state = int.from_bytes(payload[-4:], "little", signed=False)
+                rx_mode_index = int.from_bytes(payload[-5].to_bytes(1, "little"), "little", signed=True)
+                self.config_state = int.from_bytes(payload[-4:], "little", signed=False)
                 message = payload[4:length]  # The size of msg_id is 4 bytes and it is included in the message
                 msg_id = int.from_bytes(payload[:4], "little", signed=False)
 
-                # Ensure radio link mode is within valid range
-                if 0 <= radio_mode_index < (len(radio_modes) - 1):  # -1 because added tone mode
-                    radio_mode = radio_modes[radio_mode_index]
-                    self.handle_json_file(rx_freq, radio_mode)
-                else:
-                    print(f"Invalid radio mode index: {radio_mode_index}")
-                    return
-
                 # Store payload in a dictionary
-                payload_data = {
+                self.payload_data = {
                     "id": msg_id,
                     "message": list(message),
                     "length": length,  # length includes the 4 bytes used by the identifier
                     "rssi": rssi,
                     "crc": crc,
-                    "state": config_state,
                 }
 
+                # Ensure radio link mode is within valid range
+                if 0 <= rx_mode_index < (len(radio_modes) - 1):  # -1 because added tone mode
+                    rx_mode = radio_modes[rx_mode_index]
+                    self.handle_json_file(rx_mode, configs)
+                else:
+                    print(f"Invalid radio mode index: {rx_mode_index}")
+                    sys.exit(1)
+
                 # Print or/and store payload
-                self.store_payload(payload_data)
+                self.store_payload(self.payload_data)
 
-    def handle_json_file(self, rx_freq, radio_mode):
+    def handle_json_file(self, rx_mode, configs):
         os.makedirs("experiment_data", exist_ok=True)
-        freq_diff = FREQ_INTERFERER - rx_freq  # Frequency difference between interferer and link
-        json_file = f"experiment_data/{radio_mode}_{INTERFERER_MODE}_{TX_POWER_LINK}dBm{TX_POWER_INTERFERER}dBm_{freq_diff}MHz.jsonl"
+        self.json_file = f"experiment_data/{rx_mode}_"
 
-        # Initialize json_writer if not already done
-        if not self.json_writer and self.save_flag:
-            self.json_writer = jsonlines.open(json_file, mode="a")
+        # Unpack current state configurations
+        cfg = configs[self.config_state]
+        
+        # Assert that tx_mode == rx_mode
+        if cfg.tx_mode != rx_mode:
+            print("Exiting program because tx_mode != rx_mode")
+            sys.exit(1)
+        
+        self.json_file += f"{cfg.block_mode}_{cfg.tx_power}dBm{cfg.block_power}dBm_{cfg.tx_freq}MHz{cfg.block_freq}MHz_delay{cfg.delay_us}us_"
+        self.json_file += f"tx{cfg.tx_packet_size}B_"
+        block_info = f"block{cfg.tone_blocker_us}us" if cfg.block_mode == "tone" else f"block{cfg.block_packet_size}B"
+        self.json_file += block_info + ".jsonl"
 
     def store_payload(self, payload_data):
-        if self.json_writer and self.save_flag:
-            self.json_writer.write(payload_data)
+        if self.save_flag:
+            with jsonlines.open(self.json_file, mode="a") as json_writer:
+                json_writer.write(payload_data)
         if self.print_flag:
             print(payload_data)
         if self.plot_flag:
@@ -116,7 +121,7 @@ class SerialReader:
 
         # Create a box with payload details
         crc_text = "OK" if payload_data['crc'] else "ERROR"
-        info_text = f"ID: {payload_data['id']}\nLength: {payload_data['length']} B\nRSSI: {payload_data['rssi']} dBm\nCRC: {crc_text}\nCurrent state: {payload_data['state']}"
+        info_text = f"ID: {payload_data['id']}\nLength: {payload_data['length']} B\nRSSI: {payload_data['rssi']} dBm\nCRC: {crc_text}\nCurrent state: {self.config_state}"
         plt.gca().text(1.05, 0.55, info_text, fontsize=10, ha="left", va="top", transform=plt.gca().transAxes, bbox=dict(facecolor="white", alpha=0.5))
 
         # Show grid and update the plot
@@ -131,17 +136,6 @@ class SerialReader:
 
 
 if __name__ == "__main__":
-    # Check if global defines are within range
-    if not (isinstance(FREQ_INTERFERER, int) and 2400 <= FREQ_INTERFERER <= 2500):
-        print("FREQ_INTERFERER must be an integer between 2400 and 2500 MHz.")
-        sys.exit(1)
-    if TX_POWER_INTERFERER not in tx_power_values or TX_POWER_LINK not in tx_power_values:
-        print("TX_POWER_INTERFERER and TX_POWER_LINK must match the nRF's allowed transmission values.")
-        sys.exit(1)
-    if INTERFERER_MODE not in radio_modes:
-        print("INTERFERER_MODE must match the nRF's allowed radio modes.")
-        sys.exit(1)
-
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Serial Reader CLI")
     parser.add_argument("-port", "--port", type=str, default=f"/dev/ttyACM{DEFAULT_USB_PORT}", help=f"USB port (default: /dev/ttyACM{DEFAULT_USB_PORT})")
