@@ -6,13 +6,7 @@ import sys
 import os
 import matplotlib.pyplot as plt
 from hdlc import HDLCHandler, HDLCState
-from config import (
-    DEFAULT_USB_PORT,
-    DEFAULT_BAUDRATE,
-    tx_power_values,
-    radio_modes,
-    configs
-)
+from config import DEFAULT_USB_PORT, DEFAULT_BAUDRATE, tx_power_values, radio_modes, configs
 
 plt.ion()
 
@@ -92,12 +86,12 @@ class SerialReader:
 
         # Unpack current state configurations
         cfg = configs[self.config_state]
-        
+
         # Assert that tx_mode == rx_mode
         if cfg.tx_mode != rx_mode:
             print("Exiting program because tx_mode != rx_mode")
             sys.exit(1)
-        
+
         self.json_file += f"{cfg.block_mode}_{cfg.tx_power}dBm{cfg.block_power}dBm_{cfg.tx_freq}MHz{cfg.block_freq}MHz_delay{cfg.delay_us}us_"
         self.json_file += f"tx{cfg.tx_packet_size}B_"
         block_info = f"block{cfg.tone_blocker_us}us" if cfg.block_mode == "tone" else f"block{cfg.block_packet_size}B"
@@ -120,7 +114,7 @@ class SerialReader:
         plt.ylabel("Message")
 
         # Create a box with payload details
-        crc_text = "OK" if payload_data['crc'] else "ERROR"
+        crc_text = "OK" if payload_data["crc"] else "ERROR"
         info_text = f"ID: {payload_data['id']}\nLength: {payload_data['length']} B\nRSSI: {payload_data['rssi']} dBm\nCRC: {crc_text}\nCurrent state: {self.config_state}"
         plt.gca().text(1.05, 0.55, info_text, fontsize=10, ha="left", va="top", transform=plt.gca().transAxes, bbox=dict(facecolor="white", alpha=0.5))
 
