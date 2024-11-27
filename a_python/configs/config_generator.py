@@ -6,7 +6,7 @@ block_modes = ["BLE1MBit", "IEEE802154250Kbit", "tone"]
 # blocker_powers = [-20, -16, -12, -8, -4, 0, 2, 3, 4, 5, 6, 7, 8]
 blocker_powers = [-4, 2]
 
-tx_freq = 2450  # MHz
+tx_freq = 2425  # MHz
 # freq_offsets = [-2, -1, 0, 1, 2]
 freq_offsets = [0, 1]
 
@@ -81,7 +81,7 @@ def format_c_configs_tx(configs):
         packet = "packet_tx"
 
         # Format the string with the above variables
-        config_str = f"    {{ {tx_mode}, {tx_freq}, {tx_power}, " f"{delay_us}, {tone_blocker_us}, {increase_id}, {tx_packet_size}, {packet} }},\n"
+        config_str = f"    {{ {tx_mode}, {tx_freq}, {tx_power}, {delay_us}, {tone_blocker_us}, {increase_id}, {tx_packet_size}, {packet} }},\n"
         formatted_configs.append(config_str)
 
     return formatted_configs
@@ -109,7 +109,21 @@ def format_c_configs_blocker(configs):
         packet = "packet_tx"
 
         # Format the string with the above variables
-        config_str = f"    {{ {tx_mode}, {tx_freq}, {tx_power}, " f"{delay_us}, {tone_blocker_us}, {increase_id}, {tx_packet_size}, {packet} }},\n"
+        config_str = f"    {{ {tx_mode}, {tx_freq}, {tx_power}, {delay_us}, {tone_blocker_us}, {increase_id}, {tx_packet_size}, {packet} }},\n"
+        formatted_configs.append(config_str)
+
+    return formatted_configs
+
+
+# Format C receiver configs
+def format_c_configs_rx(configs):
+    formatted_configs = []
+    for c in configs:
+        tx_mode = f"DB_RADIO_{c['tx_mode']}"
+        tx_freq = c["tx_freq"] - 2400
+
+        # Format the string with the above variables
+        config_str = f"    {{ {tx_mode}, {tx_freq} }},\n"
         formatted_configs.append(config_str)
 
     return formatted_configs
@@ -126,7 +140,7 @@ def write_configs():
         f.write("]\n")
 
     # Main transmitter (C)
-    with open("main_tx_config.c", "w") as f:
+    with open("transmitter_config.c", "w") as f:
         f.write("static const radio_config_t configs[] = {\n")
         f.writelines(format_c_configs_tx(configs))
         f.write("};\n")
@@ -135,6 +149,12 @@ def write_configs():
     with open("blocker_config.c", "w") as f:
         f.write("static const radio_config_t configs[] = {\n")
         f.writelines(format_c_configs_blocker(configs))
+        f.write("};\n")
+
+    # Receiver (C)
+    with open("receiver_config.c", "w") as f:
+        f.write("static const radio_config_t configs[] = {\n")
+        f.writelines(format_c_configs_rx(configs))
         f.write("};\n")
 
 
