@@ -26,6 +26,9 @@ def generate_configs():
     for tx_mode, block_mode, block_power, freq_offset in product(
         tx_modes, block_modes, blocker_powers, freq_offsets
     ):
+        if tx_mode == block_mode:
+            continue
+
         block_freq = tx_freq + freq_offset
 
         if block_mode == "tone":
