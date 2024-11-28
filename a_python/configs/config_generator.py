@@ -9,6 +9,8 @@ blocker_powers = [-4, 2]
 tx_freq = 2425  # MHz
 # freq_offsets = [-2, -1, 0, 1, 2]
 freq_offsets = [0, 1]
+tx_modes_dotbot = ["DB_RADIO_BLE_1MBit", "DB_RADIO_IEEE802154_250Kbit"]
+mode_mapping = dict(zip(tx_modes, tx_modes_dotbot)) # Map block_modes to tx_modes_dotbot
 
 # Constants
 BLOCKER_DELAY_US = {"BLE1MBit": 255, "IEEE802154250Kbit": 940}
@@ -69,7 +71,8 @@ def format_python_configs(configs):
 def format_c_configs_tx(configs):
     formatted_configs = []
     for c in configs:
-        tx_mode = f"DB_RADIO_{c['tx_mode']}"
+        tx_mode = mode_mapping[c["tx_mode"]]
+
         tx_freq = c["tx_freq"] - 2400
         if c["tx_power"] > 0:
             tx_power = f"RADIO_TXPOWER_TXPOWER_Pos{c['tx_power']}dBm"
@@ -95,9 +98,10 @@ def format_c_configs_blocker(configs):
     formatted_configs = []
     for c in configs:
         if c["block_mode"] == block_modes[2]:  # "tone"
-            tx_mode = f"DB_RADIO_{block_modes[0]}"  # Set BLE as default when in tone mode
+            tx_mode = tx_modes_dotbot[0]  # Set BLE as default when in tone mode
         else:
-            tx_mode = f"DB_RADIO_{c['block_mode']}"
+            tx_mode = mode_mapping[c["block_mode"]]
+
         tx_freq = c["tx_freq"] - 2400
         if c["block_power"] > 0:
             tx_power = f"RADIO_TXPOWER_TXPOWER_Pos{c['block_power']}dBm"
@@ -122,7 +126,7 @@ def format_c_configs_blocker(configs):
 def format_c_configs_rx(configs):
     formatted_configs = []
     for c in configs:
-        tx_mode = f"DB_RADIO_{c['tx_mode']}"
+        tx_mode = mode_mapping[c["tx_mode"]]
         tx_freq = c["tx_freq"] - 2400
 
         # Format the string with the above variables
