@@ -3,14 +3,16 @@ from itertools import product
 # Parameters
 tx_modes = ["BLE1MBit", "IEEE802154250Kbit"]
 block_modes = ["BLE1MBit", "IEEE802154250Kbit", "tone"]
-# blocker_powers = [-20, -16, -12, -8, -4, 0, 2, 3, 4, 5, 6, 7, 8]
-blocker_powers = [-4, 2]
 
-tx_freq = 2425  # MHz
-# freq_offsets = [-2, -1, 0, 1, 2]
-freq_offsets = [0, 1]
 tx_modes_dotbot = ["DB_RADIO_BLE_1MBit", "DB_RADIO_IEEE802154_250Kbit"]
 mode_mapping = dict(zip(tx_modes, tx_modes_dotbot)) # Map block_modes to tx_modes_dotbot
+
+blocker_powers = [-16, -12, -8, -4, 0, 2, 4, 6, 8]
+# blocker_powers = [-4, 2]
+
+tx_freq = 2490  # MHz
+freq_offsets = [-2, -1, 0, 1, 2]
+# freq_offsets = [0, 1]
 
 # Constants
 BLOCKER_DELAY_US = {"BLE1MBit": 255, "IEEE802154250Kbit": 940}
