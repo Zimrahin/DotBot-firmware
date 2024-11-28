@@ -104,7 +104,7 @@ def format_c_configs_blocker(configs):
         else:
             tx_mode = mode_mapping[c["block_mode"]]
 
-        tx_freq = c["tx_freq"] - 2400
+        tx_freq = c["block_freq"] - 2400
         if c["block_power"] > 0:
             tx_power = f"RADIO_TXPOWER_TXPOWER_Pos{c['block_power']}dBm"
         elif c["block_power"] == 0:
