@@ -67,6 +67,7 @@ class SerialReader:
                     "length": length,  # length includes the 4 bytes used by the identifier
                     "rssi": rssi,
                     "crc": crc,
+                    "config_state": self.config_state,
                 }
 
                 # Ensure radio link mode is within valid range
