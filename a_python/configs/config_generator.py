@@ -7,10 +7,10 @@ block_modes = ["BLE1MBit", "IEEE802154250Kbit", "tone"]
 tx_modes_dotbot = ["DB_RADIO_BLE_1MBit", "DB_RADIO_IEEE802154_250Kbit"]
 mode_mapping = dict(zip(tx_modes, tx_modes_dotbot)) # Map block_modes to tx_modes_dotbot
 
-blocker_powers = [-16, -12, -8, -4, 0, 2, 4, 6, 8]
+blocker_powers = [-8, -4, 0, 2, 4, 6, 8]
 # blocker_powers = [-4, 2]
 
-tx_freq = 2490  # MHz
+tx_freq = 2425  # MHz
 freq_offsets = [-2, -1, 0, 1, 2]
 # freq_offsets = [0, 1]
 
@@ -19,7 +19,7 @@ BLOCKER_DELAY_US = {"BLE1MBit": 255, "IEEE802154250Kbit": 940}
 TONE_BLOCKER_US = {"BLE1MBit": 645, "IEEE802154250Kbit": 1088}
 BLOCK_PACKET_SIZE = {"BLE1MBit": 8, "IEEE802154250Kbit": 120}
 TX_PACKET_SIZE = {"BLE1MBit": 120, "IEEE802154250Kbit": 80}
-TX_POWER = 0  # dBm
+TX_POWER = 0 # dBm
 
 
 # Generate configurations
