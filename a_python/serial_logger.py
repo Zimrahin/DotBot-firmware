@@ -55,7 +55,7 @@ class SerialReader:
                 rssi = int.from_bytes(payload[-8].to_bytes(1, "little"), "little", signed=True)
                 crc = int.from_bytes(payload[-7].to_bytes(1, "little"), "little", signed=True)
                 rx_freq = int.from_bytes(payload[-6].to_bytes(1, "little"), "little", signed=True) + 2400  # MHz
-                rx_mode_index = int.from_bytes(payload[-5].to_bytes(1, "little"), "little", signed=True)
+                rx_mode_index = int.from_bytes(payload[-5].to_bytes(1, "little"), "little", signed=False)
                 self.config_state = int.from_bytes(payload[-4:], "little", signed=False)
                 message = payload[4:length]  # The size of msg_id is 4 bytes and it is included in the message
                 msg_id = int.from_bytes(payload[:4], "little", signed=False)
