@@ -1,5 +1,7 @@
 from itertools import product
 
+# tx_power_values = [-40, -20, -16, -12, -8, -4, 0, 2, 3, 4, 5, 6, 7, 8]
+
 # Parameters
 tx_modes = ["BLE1MBit", "IEEE802154250Kbit"]
 block_modes = ["BLE1MBit", "IEEE802154250Kbit", "tone"]
