@@ -106,7 +106,7 @@ static void _radio_callback(uint8_t *packet, uint8_t length) {
 
     // When blocking with the same protocol, it can happen that the blocker is detected
     // which is at the same time being interfered by the main transmitter
-    if (length > MAX_PAYLOAD_SIZE) {
+    if (length > (MAX_PAYLOAD_SIZE + sizeof(uint32_t))) {
         return;
     }
 
