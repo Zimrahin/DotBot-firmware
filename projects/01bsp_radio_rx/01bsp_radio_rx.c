@@ -29,7 +29,7 @@
 
 #define DB_UART_MAX_BYTES (255U)       // max bytes in UART buffer
 #define DB_UART_BAUDRATE  (1000000UL)  // UART baudrate
-#define MAX_PAYLOAD_SIZE  (120)        // Maximum message size
+#define MAX_PAYLOAD_SIZE  (120U)       // Maximum message size
 
 #if defined(NRF5340_XXAA) && defined(NRF_APPLICATION)
 #define DB_UART_INDEX (1)  ///< Index of UART peripheral to use
@@ -103,6 +103,12 @@ void _init_configurations(void) {
 
 static void _radio_callback(uint8_t *packet, uint8_t length) {
     db_gpio_toggle(&_dbg_pin);  // Toggle LED for visualization of received packet
+
+    // When blocking with the same protocol, it can happen that the blocker is detected
+    // which is at the same time being interfered by the main transmitter
+    if (length > MAX_PAYLOAD_SIZE) {
+        return;
+    }
 
     // Fill _radio_packet structure
     memset(_radio_packet.buffer, 0, MAX_PAYLOAD_SIZE);                                   // Clear the buffer before filling it with new data in case of leftovers
