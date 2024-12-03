@@ -52,7 +52,7 @@ typedef struct __attribute__((packed)) {
 
 //=========================== variables =========================================
 
-static const gpio_t _dbg_pin             = { .port = DB_LED1_PORT, .pin = DB_LED1_PIN };
+static const gpio_t _dbg_pin             = { .port = 1, .pin = 11 };
 static const gpio_t _pin_in_config_state = { .port = 1, .pin = 10 };  // Toggling this pin changes the state
 
 static uint8_t hdlc_tx_buffer[DB_UART_MAX_BYTES];
