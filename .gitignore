@@ -75,3 +75,7 @@ venv/
 __pycache__*/
 a_python/experiment_data
 *.pdf
+a_python/configs/receiver_config.c
+a_python/configs/receiver_config.py
+a_python/configs/transmitter_config.c
+a_python/configs/blocker_config.c
