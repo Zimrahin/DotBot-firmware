@@ -57,6 +57,7 @@ static const gpio_t _pin_out_radio_events = { .port = 1, .pin = 12 };  // Show r
 static _radio_pdu_t _radio_pdu = { 0 };
 
 static uint32_t current_config_state = 0;
+static uint32_t packet_tx_offset     = 0;
 
 //=========================== prototypes =========================================
 
@@ -260,6 +261,14 @@ static void _gpio_callback_increase_id(void *ctx) {
         // Copy the ID to the radio.c payload (where PACKETPTR is pointing)
         db_radio_memcpy2payload((uint8_t *)&_radio_pdu.msg_id, sizeof(_radio_pdu.msg_id), false, 0);
     }
+    if (configs[current_config_state].increase_packet_offset) {
+        // Copy the message to the payload
+        db_radio_memcpy2payload((uint8_t *)&packet_tx + packet_tx_offset,
+                                configs[current_config_state].packet_size, false, sizeof(_radio_pdu.msg_id));
+        packet_tx_offset += 1;
+        if (packet_tx_offset + configs[current_config_state].packet_size > sizeof(packet_tx)) {
+            packet_tx_offset = 0;
+        }
     }
 }
 
