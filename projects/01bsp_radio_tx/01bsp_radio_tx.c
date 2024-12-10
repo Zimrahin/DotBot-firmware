@@ -94,9 +94,9 @@ void _init_configurations(void) {
 
     // Configure Radio
     db_radio_init(NULL, configs[current_config_state].radio_mode);
-    db_radio_set_frequency(configs[current_config_state].frequency);                                                              // Set transmission frequency
-    NRF_RADIO->TXPOWER = (configs[current_config_state].tx_power << RADIO_TXPOWER_TXPOWER_Pos);                                   // Set transmission power
-    db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, configs[current_config_state].packet_size + sizeof(_radio_pdu.msg_id), true);  // Always send same payload
+    db_radio_set_frequency(configs[current_config_state].frequency);                             // Set transmission frequency
+    NRF_RADIO->TXPOWER = (configs[current_config_state].tx_power << RADIO_TXPOWER_TXPOWER_Pos);  // Set transmission power
+    db_radio_memcpy2payload((uint8_t *)&_radio_pdu, configs[current_config_state].packet_size + sizeof(_radio_pdu.msg_id), true, 0);
 
     // Only set transmission shortcuts when sending packets
     if (configs[current_config_state].tone_blocker_us) {
@@ -257,7 +257,9 @@ static void _gpio_callback_increase_id(void *ctx) {
     (void)ctx;
     if (configs[current_config_state].increase_id) {
         _radio_pdu.msg_id += 1;
-        db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, sizeof(_radio_pdu.msg_id), false);
+        // Copy the ID to the radio.c payload (where PACKETPTR is pointing)
+        db_radio_memcpy2payload((uint8_t *)&_radio_pdu.msg_id, sizeof(_radio_pdu.msg_id), false, 0);
+    }
     }
 }
 

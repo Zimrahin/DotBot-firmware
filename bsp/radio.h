@@ -102,7 +102,7 @@ void db_radio_set_network_address(uint32_t addr);
  */
 void db_radio_tx(const uint8_t *tx_buffer, uint8_t length);
 
-void db_radio_memcpy2buffer(const uint8_t *tx_buffer, uint8_t length, bool update_length);
+void db_radio_memcpy2payload(const uint8_t *tx_buffer, uint8_t length, bool update_length, uint8_t offset);
 
 /**
  * @brief Starts Receiving packets through the Radio

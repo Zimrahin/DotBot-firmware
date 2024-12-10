@@ -235,12 +235,12 @@ void db_radio_set_network_address(uint32_t addr) {
     NRF_RADIO->BASE0 = addr;
 }
 
-void db_radio_memcpy2buffer(const uint8_t *tx_buffer, uint8_t length, bool update_length) {
+void db_radio_memcpy2payload(const uint8_t *tx_buffer, uint8_t length, bool update_length, uint8_t offset) {
     // This condition is here so that I can memcpy an arbitrary length without changing the values stored in radio_vars
     if (update_length) {
         radio_vars.pdu.length = length;
     }
-    memcpy(radio_vars.pdu.payload, tx_buffer, length);
+    memcpy(radio_vars.pdu.payload + offset, tx_buffer, length);
 }
 
 void db_radio_tx(const uint8_t *tx_buffer, uint8_t length) {
