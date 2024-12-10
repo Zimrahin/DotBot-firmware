@@ -85,6 +85,36 @@ int main(void) {
 
 //=========================== functions =========================================
 
+void _init_configurations(void) {
+    // Initialise the TIMER0
+    _hf_timer_init(configs[current_config_state].delay_us, configs[current_config_state].tone_blocker_us);
+
+    // Initialize message to _radio_pdu_t struct
+    memcpy(_radio_pdu.message, packet_tx, configs[current_config_state].packet_size);
+
+    // Configure Radio
+    db_radio_init(NULL, configs[current_config_state].radio_mode);
+    db_radio_set_frequency(configs[current_config_state].frequency);                                                              // Set transmission frequency
+    NRF_RADIO->TXPOWER = (configs[current_config_state].tx_power << RADIO_TXPOWER_TXPOWER_Pos);                                   // Set transmission power
+    db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, configs[current_config_state].packet_size + sizeof(_radio_pdu.msg_id), true);  // Always send same payload
+
+    // Only set transmission shortcuts when sending packets
+    if (configs[current_config_state].tone_blocker_us) {
+        NRF_RADIO->SHORTS = 0;
+    } else {
+        NRF_RADIO->SHORTS = (RADIO_SHORTS_READY_START_Enabled << RADIO_SHORTS_READY_START_Pos) |
+                            (RADIO_SHORTS_END_DISABLE_Enabled << RADIO_SHORTS_END_DISABLE_Pos);
+    }
+
+    // Set PPI and GPIOTE
+    if (configs[current_config_state].increase_id) {
+        db_gpio_init_irq(&_pin_in_square, DB_GPIO_IN, GPIOTE_CONFIG_POLARITY_Toggle, _gpio_callback_increase_id, NULL);
+    }
+
+    _gpiote_setup(&_pin_in_square, &_pin_out_radio_events);
+    _ppi_setup();
+}
+
 void _gpiote_setup(const gpio_t *gpio_in, const gpio_t *gpio_out) {
     // Configure input GPIO pin for enabling a synced transmission to a master clock
     NRF_GPIOTE->CONFIG[GPIOTE_CH_IN] = (GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) |
@@ -219,36 +249,6 @@ void _hf_timer_init(uint32_t delay_us, uint32_t tone_us) {
         NRF_TIMER0->SHORTS = (TIMER_SHORTS_COMPARE0_CLEAR_Enabled << TIMER_SHORTS_COMPARE0_CLEAR_Pos) |
                              (TIMER_SHORTS_COMPARE0_STOP_Enabled << TIMER_SHORTS_COMPARE0_STOP_Pos);
     }
-}
-
-void _init_configurations(void) {
-    // Initialise the TIMER0
-    _hf_timer_init(configs[current_config_state].delay_us, configs[current_config_state].tone_blocker_us);
-
-    // Initialize message to _radio_pdu_t struct
-    memcpy(_radio_pdu.message, packet_tx, configs[current_config_state].packet_size);
-
-    // Configure Radio
-    db_radio_init(NULL, configs[current_config_state].radio_mode);
-    db_radio_set_frequency(configs[current_config_state].frequency);                                                              // Set transmission frequency
-    NRF_RADIO->TXPOWER = (configs[current_config_state].tx_power << RADIO_TXPOWER_TXPOWER_Pos);                                   // Set transmission power
-    db_radio_memcpy2buffer((uint8_t *)&_radio_pdu, configs[current_config_state].packet_size + sizeof(_radio_pdu.msg_id), true);  // Always send same payload
-
-    // Only set transmission shortcuts when sending packets
-    if (configs[current_config_state].tone_blocker_us) {
-        NRF_RADIO->SHORTS = 0;
-    } else {
-        NRF_RADIO->SHORTS = (RADIO_SHORTS_READY_START_Enabled << RADIO_SHORTS_READY_START_Pos) |
-                            (RADIO_SHORTS_END_DISABLE_Enabled << RADIO_SHORTS_END_DISABLE_Pos);
-    }
-
-    // Set PPI and GPIOTE
-    if (configs[current_config_state].increase_id) {
-        db_gpio_init_irq(&_pin_in_square, DB_GPIO_IN, GPIOTE_CONFIG_POLARITY_Toggle, _gpio_callback_increase_id, NULL);
-    }
-
-    _gpiote_setup(&_pin_in_square, &_pin_out_radio_events);
-    _ppi_setup();
 }
 
 //=========================== callbacks =========================================
