@@ -73,3 +73,5 @@ venv/
 
 # Python cache
 __pycache__*/
+a_python/experiment_data
+*.pdf
