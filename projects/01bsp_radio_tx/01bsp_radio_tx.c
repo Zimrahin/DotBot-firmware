@@ -65,7 +65,7 @@ void _ppi_setup(void);
 void _hf_timer_init(uint32_t delay_us, uint32_t tone_us);
 void _init_configurations(void);
 
-static void _gpio_callback(void *ctx);
+static void _gpio_callback_increase_id(void *ctx);
 static void _gpio_callback_change_state(void *ctx);
 
 //=========================== main ==============================================
@@ -244,7 +244,7 @@ void _init_configurations(void) {
 
     // Set PPI and GPIOTE
     if (configs[current_config_state].increase_id) {
-        db_gpio_init_irq(&_pin_in_square, DB_GPIO_IN, GPIOTE_CONFIG_POLARITY_Toggle, _gpio_callback, NULL);
+        db_gpio_init_irq(&_pin_in_square, DB_GPIO_IN, GPIOTE_CONFIG_POLARITY_Toggle, _gpio_callback_increase_id, NULL);
     }
 
     _gpiote_setup(&_pin_in_square, &_pin_out_radio_events);
@@ -253,7 +253,7 @@ void _init_configurations(void) {
 
 //=========================== callbacks =========================================
 
-static void _gpio_callback(void *ctx) {
+static void _gpio_callback_increase_id(void *ctx) {
     (void)ctx;
     if (configs[current_config_state].increase_id) {
         _radio_pdu.msg_id += 1;
