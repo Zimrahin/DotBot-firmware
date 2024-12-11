@@ -1,10 +1,12 @@
 from itertools import product
 import sys
+import random
 
 # Possible power values supported by the nRF
 # tx_power_values = [-40, -20, -16, -12, -8, -4, 0, 2, 3, 4, 5, 6, 7, 8]
 
 same_protocol_blocking = 0  # (0), (1) BLE1MBit, (2) IEEE802154250Kbit
+pseudo_random_sequence = 10120
 
 tx_freq = 2425  # MHz
 BLOCKER_DELAY_US = {"BLE1MBit": 255, "IEEE802154250Kbit": 940}  # (e.g., delay for a blocker when transmitting BLE is 255 µs)
@@ -114,10 +116,10 @@ def format_c_configs_tx(configs):
         tone_blocker_us = 0  # Main transmitter is never a tone
         increase_id = 1  # (0) Don't increase (Blocker), (1) Increase (Main transmitter)
         tx_packet_size = c["tx_packet_size"]
-        packet = "packet_tx"
+        increase_packet_offset = 0 # Keep main transmitter packet constant
 
         # Format the string with the above variables
-        config_str = f"    {{ {tx_mode}, {tx_freq}, {tx_power}, {delay_us}, {tone_blocker_us}, {increase_id}, {tx_packet_size}, {packet} }},\n"
+        config_str = f"    {{ {tx_mode}, {tx_freq}, {tx_power}, {delay_us}, {tone_blocker_us}, {increase_id}, {tx_packet_size}, {increase_packet_offset} }},\n"
         formatted_configs.append(config_str)
 
     return formatted_configs
@@ -143,10 +145,10 @@ def format_c_configs_blocker(configs):
         tone_blocker_us = c["tone_blocker_us"]
         increase_id = 0  # (0) Don't increase (Blocker), (1) Increase (Main transmitter)
         tx_packet_size = c["block_packet_size"]
-        packet = "packet_tx"
+        increase_packet_offset = 1 if pseudo_random_sequence != False else 0
 
         # Format the string with the above variables
-        config_str = f"    {{ {tx_mode}, {tx_freq}, {tx_power}, {delay_us}, {tone_blocker_us}, {increase_id}, {tx_packet_size}, {packet} }},\n"
+        config_str = f"    {{ {tx_mode}, {tx_freq}, {tx_power}, {delay_us}, {tone_blocker_us}, {increase_id}, {tx_packet_size}, {increase_packet_offset} }},\n"
         formatted_configs.append(config_str)
 
     return formatted_configs
@@ -165,6 +167,16 @@ def format_c_configs_rx(configs):
 
     return formatted_configs
 
+# Generate a random packet
+def generate_random_packet(pseudo_random_sequence):
+    if pseudo_random_sequence == False:
+        return
+    packet = [random.randint(0, 255) for _ in range(pseudo_random_sequence)]
+    lines = []
+    for i in range(0, len(packet), 8):
+        line = ", ".join(f"0x{byte:02X}" for byte in packet[i:i + 8])
+        lines.append(f"    {line},  //")
+    return "\n".join(lines)
 
 # Write configurations to files
 def write_configs():
@@ -193,6 +205,13 @@ def write_configs():
         f.write("static const radio_config_t configs[] = {\n")
         f.writelines(format_c_configs_rx(configs))
         f.write("};\n")
+
+    # Random packet (C)
+    if pseudo_random_sequence != False:
+        with open("random_packet.c", "w") as f:
+            f.write("static const uint8_t packet_tx[] = {\n")
+            f.write(generate_random_packet(pseudo_random_sequence))
+            f.write("\n};  " + f"// {pseudo_random_sequence} long\n")
 
 
 # Run the script
