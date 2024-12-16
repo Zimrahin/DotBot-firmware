@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-BLE_width = 1.2
-IEEE_width = 2.0
+BLE_width = 1.5
+IEEE_width = 3.0
 
 def sinc_in_db(x, center, width):
     sinc = np.sinc((x - center) / (width / 2))
@@ -43,13 +43,13 @@ for channel, freq in wifi_channels.items():
 for channel, freq in ble_channels.items():
     sinc_curve = sinc_in_db(freq_range, freq, BLE_width)
     plt.fill(freq_range, sinc_curve, label=f"BLE {channel}", color="blue", alpha=0.5)
-    plt.text(freq, -15, str(freq), ha="center", va="top", color="blue", fontsize=8, rotation=45)
+    plt.text(freq, -15, str(freq), ha="center", va="top", color="blue", fontsize=11, rotation=90)
 
 # Plot 802.15.4 channels
 for channel, freq in zigbee_channels.items():
     sinc_curve = sinc_in_db(freq_range, freq, IEEE_width)
     plt.fill(freq_range, sinc_curve, label=f"802.15.4 {channel}", color="orange", alpha=0.5)
-    plt.text(freq, 10, str(freq), ha="center", va="bottom", color="orange", fontsize=8, rotation=45)
+    plt.text(freq, 10, str(freq), ha="center", va="bottom", color="orange", fontsize=11, rotation=90)
 
 
 # Add custom legend
@@ -60,4 +60,7 @@ plt.xticks([])
 plt.yticks([])
 plt.grid(False)
 plt.tight_layout(rect=[0, 0.2, 1, 1])
+
+plt.savefig("channel_mapping.svg", format="svg")
+
 plt.show()
