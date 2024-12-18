@@ -73,7 +73,8 @@ class SerialReader:
                 # Ensure radio link mode is within valid range
                 if 0 <= rx_mode_index < (len(radio_modes) - 1):  # -1 because added tone mode
                     rx_mode = radio_modes[rx_mode_index]
-                    self.handle_json_file(rx_mode, configs)
+                    if self.save_flag:
+                        self.handle_json_file(rx_mode, configs)
                 else:
                     print(f"Invalid radio mode index: {rx_mode_index}")
                     sys.exit(1)
