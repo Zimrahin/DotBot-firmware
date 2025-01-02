@@ -5,7 +5,7 @@ import random
 # Possible power values supported by the nRF
 # tx_power_values = [-40, -20, -16, -12, -8, -4, 0, 2, 3, 4, 5, 6, 7, 8]
 
-same_protocol_blocking = 0  # (0), (1) BLE1MBit, (2) IEEE802154250Kbit
+same_protocol_blocking = 2  # (0), (1) BLE1MBit, (2) IEEE802154250Kbit
 pseudo_random_sequence = 10120
 
 tx_freq = 2425  # MHz
