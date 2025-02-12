@@ -129,11 +129,11 @@ void db_radio_init(radio_cb_t callback, db_radio_mode_t mode) {
                            (RADIO_PCNF0_CRCINC_Exclude << RADIO_PCNF0_CRCINC_Pos);
 
         // // Packet configuration register 1
-        NRF_RADIO->PCNF1 = (DB_IEEE802154_PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos) |  // Max payload of 127 bytes
+        NRF_RADIO->PCNF1 = (DB_IEEE802154_PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos) |  // Max payload of 125 bytes (without CRC)
                            (0 << RADIO_PCNF1_STATLEN_Pos) |                                // 0 bytes added to payload length
                            (RADIO_PCNF1_ENDIAN_Little << RADIO_PCNF1_ENDIAN_Pos) |         // Little-endian format
-                           (0 << RADIO_PCNF1_BALEN_Pos);                                   // Base address length
-                                                                                           //    (RADIO_PCNF1_WHITEEN_Enabled << RADIO_PCNF1_WHITEEN_Pos);       // Enable whitening
+                           (0 << RADIO_PCNF1_BALEN_Pos) |                                  // No address in IEEE 802.15.4 PHY
+                           (RADIO_PCNF1_WHITEEN_Disabled << RADIO_PCNF1_WHITEEN_Pos);      // IEEE 802.15.4 PHY doesn't include whitening
 
     } else if (mode == DB_RADIO_BLE_1MBit || mode == DB_RADIO_BLE_2MBit) {
         NRF_RADIO->TXPOWER = (RADIO_TXPOWER_TXPOWER_0dBm << RADIO_TXPOWER_TXPOWER_Pos);  // 0dBm == 1mW Power output
@@ -145,8 +145,8 @@ void db_radio_init(radio_cb_t callback, db_radio_mode_t mode) {
         NRF_RADIO->PCNF1 = (4UL << RADIO_PCNF1_BALEN_Pos) |  // The base address is 4 Bytes long
                            (DB_BLE_PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos) |
                            (0 << RADIO_PCNF1_STATLEN_Pos) |
-                           (RADIO_PCNF1_ENDIAN_Little << RADIO_PCNF1_ENDIAN_Pos);  // Make the on air packet be little endian (this enables some useful features)
-                                                                                   //    (RADIO_PCNF1_WHITEEN_Enabled << RADIO_PCNF1_WHITEEN_Pos);  // Enable data whitening feature.
+                           (RADIO_PCNF1_ENDIAN_Little << RADIO_PCNF1_ENDIAN_Pos) |    // Make the on air packet be little endian (this enables some useful features)
+                           (RADIO_PCNF1_WHITEEN_Enabled << RADIO_PCNF1_WHITEEN_Pos);  // Enable data whitening feature.
 
     } else {  // Long ranges modes (125KBit/500KBit)
 #if defined(NRF5340_XXAA)
